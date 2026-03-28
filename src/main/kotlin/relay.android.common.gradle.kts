@@ -11,10 +11,14 @@ import org.gradle.kotlin.dsl.withType
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 
 fun versionString(name: String): String = libsCatalog.findVersion(name).get().requiredVersion
+fun versionStringOrNull(name: String): String? {
+    val version = libsCatalog.findVersion(name)
+    return if (version.isPresent) version.get().requiredVersion else null
+}
 
 fun CommonExtension.configureRelayAndroidCommon() {
     compileSdk = versionString("compileSdk").toInt()
-    compileSdkExtension = versionString("compileSdkExtension").toInt()
+    versionStringOrNull("compileSdkExtension")?.toIntOrNull()?.let { compileSdkExtension = it }
 
     if (!flavorDimensions.contains("distribution")) {
         flavorDimensions += "distribution"
