@@ -11,11 +11,19 @@ Current plugin set:
 - `relay.app.signing`
 - `relay.app.packaging`
 - `relay.app.webui`
+- `mipush.android.application`
+- `mipush.android.library`
+- `mipush.android.compose`
+- `mipush.android.hilt`
+- `mipush.android.room`
+- `mipush.app.packaging`
 
 ## Consumers
 
 - `XposedSmsCode`
 - `xinyi-relay`
+- `MiPush`
+- `MiPushFramework`
 
 ## Version Catalog
 

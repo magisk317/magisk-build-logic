@@ -14,4 +14,6 @@ dependencies {
     implementation("com.android.tools.build:gradle:${libsCatalog.findVersion("agp").get().requiredVersion}")
     implementation(kotlin("gradle-plugin", libsCatalog.findVersion("kotlin").get().requiredVersion))
     implementation("com.google.gms:google-services:${libsCatalog.findVersion("google-services").get().requiredVersion}")
+    implementation("com.google.devtools.ksp:symbol-processing-gradle-plugin:${libsCatalog.findVersion("ksp").get().requiredVersion}")
+    implementation("com.google.dagger:hilt-android-gradle-plugin:${libsCatalog.findVersion("hilt").get().requiredVersion}")
 }
