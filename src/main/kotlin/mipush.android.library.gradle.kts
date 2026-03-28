@@ -3,7 +3,6 @@ import org.gradle.kotlin.dsl.configure
 
 plugins {
     id("com.android.library")
-    id("org.jetbrains.kotlin.android")
 }
 
 extensions.configure<LibraryExtension> {
