@@ -12,7 +12,7 @@ internal fun Project.catalogVersion(name: String): String = libsCatalog()
 
 internal fun Project.catalogVersionOrNull(name: String): String? = libsCatalog()
     .findVersion(name)
-    .orNull
+    .orElse(null)
     ?.requiredVersion
 
 internal fun Project.catalogInt(name: String): Int = catalogVersion(name).toInt()

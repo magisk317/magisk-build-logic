@@ -2,7 +2,6 @@ import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.dsl.LibraryExtension
 import org.gradle.api.JavaVersion
 import org.gradle.api.Project
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 internal fun Project.configureMipushAndroidCommon(applicationExtension: ApplicationExtension) {
     applicationExtension.apply {
@@ -13,12 +12,6 @@ internal fun Project.configureMipushAndroidCommon(applicationExtension: Applicat
             val javaVersion = JavaVersion.toVersion(mipushJavaTarget())
             sourceCompatibility = javaVersion
             targetCompatibility = javaVersion
-        }
-
-        kotlin {
-            compilerOptions {
-                jvmTarget.set(JvmTarget.fromTarget(project.mipushJavaTarget()))
-            }
         }
     }
 }
@@ -32,12 +25,6 @@ internal fun Project.configureMipushAndroidCommon(libraryExtension: LibraryExten
             val javaVersion = JavaVersion.toVersion(mipushJavaTarget())
             sourceCompatibility = javaVersion
             targetCompatibility = javaVersion
-        }
-
-        kotlin {
-            compilerOptions {
-                jvmTarget.set(JvmTarget.fromTarget(project.mipushJavaTarget()))
-            }
         }
     }
 }
