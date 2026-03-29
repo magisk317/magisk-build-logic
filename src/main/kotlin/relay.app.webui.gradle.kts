@@ -39,6 +39,10 @@ tasks.register("webuiSync") {
 
 pluginManager.withPlugin("com.android.application") {
     tasks.named("preBuild").configure {
+        dependsOn(syncWebUiAssets)
+    }
+
+    tasks.named("check").configure {
         dependsOn(checkWebUiAssets)
     }
 }
