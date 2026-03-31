@@ -1,11 +1,29 @@
 import com.android.build.api.dsl.ApplicationExtension
 import org.gradle.kotlin.dsl.configure
 
-val keystoreFilePath = System.getenv("KEYSTORE_FILE")
-    ?: project.findProperty("tianma.keystore.path")?.toString()
-    ?: "release.jks"
-val keyFile = project.file(keystoreFilePath)
-val propertyFile = project.file(project.findProperty("tianma.signature.path") ?: "signature.properties")
+fun resolveSigningFile(
+    explicitPath: String?,
+    fallbackPaths: List<String>,
+): java.io.File {
+    if (!explicitPath.isNullOrBlank()) {
+        return project.file(explicitPath)
+    }
+    return fallbackPaths
+        .asSequence()
+        .map(project::file)
+        .firstOrNull { it.exists() }
+        ?: project.file(fallbackPaths.first())
+}
+
+val keyFile = resolveSigningFile(
+    explicitPath = System.getenv("KEYSTORE_FILE")
+        ?: project.findProperty("tianma.keystore.path")?.toString(),
+    fallbackPaths = listOf("release.jks", "app/release.jks"),
+)
+val propertyFile = resolveSigningFile(
+    explicitPath = project.findProperty("tianma.signature.path")?.toString(),
+    fallbackPaths = listOf("signature.properties", "app/signature.properties"),
+)
 
 val keyProps = java.util.Properties().apply {
     if (propertyFile.exists()) {
