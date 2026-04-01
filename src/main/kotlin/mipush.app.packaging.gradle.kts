@@ -23,10 +23,10 @@ fun releaseBaseName(versionName: String): String {
     val normalizedVersionName = versionName.replace("\\s+".toRegex(), "_")
     val alreadyHasBuildTimestamp = versionName.matches(Regex(".*-\\d{8}(?:_\\d{6}|\\d{6})$"))
     if (alreadyHasBuildTimestamp) {
-        return "MiPushFramework_v$normalizedVersionName"
+        return "MiPush_v$normalizedVersionName"
     }
     val suffix = buildTimestampOverride() ?: releaseTime()
-    return "MiPushFramework_v${normalizedVersionName}_$suffix"
+    return "MiPush_v${normalizedVersionName}_$suffix"
 }
 
 fun releaseApkName(versionName: String, buildType: String, abiSuffix: String): String {
