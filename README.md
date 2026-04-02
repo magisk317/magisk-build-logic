@@ -43,3 +43,9 @@ pluginManagement {
     includeBuild("build-logic")
 }
 ```
+
+For `mipush.app.packaging`, consumers can override the artifact base name:
+
+```kotlin
+extra["mipushArtifactBaseName"] = "MiPushFramework"
+```
