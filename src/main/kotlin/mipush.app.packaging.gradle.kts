@@ -19,14 +19,24 @@ fun releaseTime(): String = SimpleDateFormat("yyMMdd").apply {
     timeZone = TimeZone.getDefault()
 }.format(Date())
 
+fun mipushArtifactBaseName(): String {
+    val configured = project.findProperty("mipushArtifactBaseName")
+        ?.toString()
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+        ?: rootProject.name
+    return configured.replace("\\s+".toRegex(), "_")
+}
+
 fun releaseBaseName(versionName: String): String {
+    val artifactBaseName = mipushArtifactBaseName()
     val normalizedVersionName = versionName.replace("\\s+".toRegex(), "_")
     val alreadyHasBuildTimestamp = versionName.matches(Regex(".*-\\d{8}(?:_\\d{6}|\\d{6})$"))
     if (alreadyHasBuildTimestamp) {
-        return "MiPush_v$normalizedVersionName"
+        return "${artifactBaseName}_v$normalizedVersionName"
     }
     val suffix = buildTimestampOverride() ?: releaseTime()
-    return "MiPush_v${normalizedVersionName}_$suffix"
+    return "${artifactBaseName}_v${normalizedVersionName}_$suffix"
 }
 
 fun releaseApkName(versionName: String, buildType: String, abiSuffix: String): String {
