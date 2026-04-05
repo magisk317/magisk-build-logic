@@ -28,9 +28,13 @@ fun mipushArtifactBaseName(): String {
     return configured.replace("\\s+".toRegex(), "_")
 }
 
+fun normalizeVersionName(versionName: String): String = versionName
+    .replace("\\s+".toRegex(), "_")
+    .replace(Regex("-(\\d{8})(\\d{6})$"), "-$1_$2")
+
 fun releaseBaseName(versionName: String): String {
     val artifactBaseName = mipushArtifactBaseName()
-    val normalizedVersionName = versionName.replace("\\s+".toRegex(), "_")
+    val normalizedVersionName = normalizeVersionName(versionName)
     val alreadyHasBuildTimestamp = versionName.matches(Regex(".*-\\d{8}(?:_\\d{6}|\\d{6})$"))
     if (alreadyHasBuildTimestamp) {
         return "${artifactBaseName}_v$normalizedVersionName"
@@ -69,9 +73,9 @@ pluginManager.withPlugin("com.android.application") {
         onVariants(selector().all()) { variant ->
             val isDebug = variant.buildType == "debug"
             val resolvedVersionName = if (isDebug) {
-                "${releaseVersionName.get()}-$debugBuildTimestamp"
+                normalizeVersionName("${releaseVersionName.get()}-$debugBuildTimestamp")
             } else {
-                releaseVersionName.get()
+                normalizeVersionName(releaseVersionName.get())
             }
 
             variant.outputs.forEach { output ->
