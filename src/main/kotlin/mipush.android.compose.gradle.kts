@@ -9,7 +9,13 @@ dependencies {
     add("implementation", "androidx.compose.ui:ui")
     add("implementation", "androidx.compose.material3:material3:${project.catalogVersion("material3")}")
     add("implementation", "androidx.compose.ui:ui-tooling-preview")
-    add("debugImplementation", "androidx.compose.ui:ui-tooling")
+    val includeDebugTooling = project.findProperty("includeComposeToolingInDebugApk")
+        ?.toString()
+        ?.toBooleanStrictOrNull()
+        ?: false
+    if (includeDebugTooling) {
+        add("debugImplementation", "androidx.compose.ui:ui-tooling")
+    }
     add("implementation", "androidx.lifecycle:lifecycle-runtime-ktx:${project.catalogVersion("lifecycle")}")
     add("implementation", "androidx.activity:activity-compose:${project.catalogVersion("activity-compose")}")
     add("implementation", "androidx.navigation:navigation-compose:${project.catalogVersion("navigation")}")
