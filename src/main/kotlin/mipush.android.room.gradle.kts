@@ -12,7 +12,7 @@ extensions.configure<KspExtension> {
 }
 
 dependencies {
-    add("implementation", "androidx.room:room-runtime:${project.catalogVersion("room")}")
-    add("implementation", "androidx.room:room-ktx:${project.catalogVersion("room")}")
-    add("ksp", "androidx.room:room-compiler:${project.catalogVersion("room")}")
+    add("implementation", project.catalogLibrary("androidx-room-runtime"))
+    add("implementation", project.catalogLibrary("androidx-room-ktx"))
+    add("ksp", project.catalogLibrary("androidx-room-compiler"))
 }

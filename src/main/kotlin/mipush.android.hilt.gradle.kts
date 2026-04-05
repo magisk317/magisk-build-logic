@@ -6,7 +6,7 @@ plugins {
 }
 
 dependencies {
-    add("implementation", "com.google.dagger:hilt-android:${project.catalogVersion("hilt")}")
-    add("ksp", "com.google.dagger:hilt-compiler:${project.catalogVersion("hilt")}")
-    add("implementation", "androidx.hilt:hilt-navigation-compose:1.3.0")
+    add("implementation", project.catalogLibrary("hilt-android"))
+    add("ksp", project.catalogLibrary("hilt-compiler"))
+    add("implementation", project.catalogLibrary("androidx-hilt-navigation-compose"))
 }

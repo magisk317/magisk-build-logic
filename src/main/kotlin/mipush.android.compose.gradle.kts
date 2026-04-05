@@ -5,20 +5,26 @@ plugins {
 }
 
 dependencies {
-    add("implementation", platform("androidx.compose:compose-bom:${project.catalogVersion("compose-bom")}"))
-    add("implementation", "androidx.compose.ui:ui")
-    add("implementation", "androidx.compose.material3:material3:${project.catalogVersion("material3")}")
-    add("implementation", "androidx.compose.ui:ui-tooling-preview")
+    add("implementation", platform(project.catalogLibrary("androidx-compose-bom")))
+    add("implementation", project.catalogLibrary("androidx-compose-ui"))
+    add("implementation", project.catalogLibrary("androidx-compose-material3"))
+    add("implementation", project.catalogLibrary("androidx-compose-ui-tooling-preview"))
     val includeDebugTooling = project.findProperty("includeComposeToolingInDebugApk")
         ?.toString()
         ?.toBooleanStrictOrNull()
         ?: false
     if (includeDebugTooling) {
-        add("debugImplementation", "androidx.compose.ui:ui-tooling")
+        add("debugImplementation", project.catalogLibrary("androidx-compose-ui-tooling"))
     }
-    add("implementation", "androidx.lifecycle:lifecycle-runtime-ktx:${project.catalogVersion("lifecycle")}")
-    add("implementation", "androidx.activity:activity-compose:${project.catalogVersion("activity-compose")}")
-    add("implementation", "androidx.navigation:navigation-compose:${project.catalogVersion("navigation")}")
-    add("implementation", "androidx.lifecycle:lifecycle-viewmodel-compose:${project.catalogVersion("lifecycle")}")
-    add("implementation", "androidx.lifecycle:lifecycle-runtime-compose:${project.catalogVersion("lifecycle")}")
+    add("implementation", project.catalogLibrary("androidx-lifecycle-runtime-ktx"))
+    add("implementation", project.catalogLibrary("androidx-activity-compose"))
+    add("implementation", project.catalogLibrary("androidx-navigation-compose"))
+    add(
+        "implementation",
+        project.catalogLibrary("androidx-lifecycle-viewmodel-compose"),
+    )
+    add(
+        "implementation",
+        project.catalogLibrary("androidx-lifecycle-runtime-compose"),
+    )
 }
