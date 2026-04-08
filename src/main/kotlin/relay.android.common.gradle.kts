@@ -17,7 +17,11 @@ fun versionStringOrNull(name: String): String? {
 }
 
 fun CommonExtension.configureRelayAndroidCommon() {
-    compileSdk = versionString("compileSdk").toInt()
+    val compileSdkApi = versionString("compileSdk").toInt()
+    compileSdk = compileSdkApi
+    if (compileSdkApi >= 35) {
+        compileSdkMinor = 0
+    }
     versionStringOrNull("compileSdkExtension")?.toIntOrNull()?.let { compileSdkExtension = it }
 
     if (!flavorDimensions.contains("distribution")) {
