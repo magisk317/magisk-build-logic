@@ -36,8 +36,24 @@ val isSigningInfoAvailable = keyFile.exists() &&
         keyProps.getProperty("STORE_PASSWORD") != null ||
             System.getenv("STORE_PASSWORD") != null
         )
+val allowIncompatibleDebugSigning = project.findProperty("allowIncompatibleDebugSigning")
+    ?.toString()
+    ?.toBooleanStrictOrNull()
+    ?: false
 
 pluginManager.withPlugin("com.android.application") {
+    val requestedTasks = gradle.startParameter.taskNames.map { it.lowercase() }
+    val requiresReleaseCompatibleSigning = requestedTasks.any { taskName ->
+        taskName.contains("debug") || taskName.contains("alpha")
+    }
+    if (requiresReleaseCompatibleSigning && !isSigningInfoAvailable && !allowIncompatibleDebugSigning) {
+        error(
+            "Debug/alpha builds must use release-compatible signing to preserve app data when " +
+                "upgrading from a release install. Configure release signing material or pass " +
+                "-PallowIncompatibleDebugSigning=true if you explicitly accept reinstall/data loss.",
+        )
+    }
+
     extensions.configure<ApplicationExtension> {
         val debugSigningConfig = signingConfigs.maybeCreate("debug").apply {
             enableV1Signing = true

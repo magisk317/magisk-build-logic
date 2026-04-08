@@ -28,15 +28,25 @@ fun mipushArtifactBaseName(): String {
     return configured.replace("\\s+".toRegex(), "_")
 }
 
+fun normalizeVersionName(versionName: String): String = versionName
+    .replace("\\s+".toRegex(), "_")
+    .replace(Regex("-(\\d{8})(\\d{6})$"), "-$1_$2")
+
+fun artifactVersionName(versionName: String): String = normalizeVersionName(
+    versionName.replace(Regex("-\\d+-g[0-9a-fA-F]+(?:-dirty)?$"), "")
+        .replace(Regex("-dirty$"), "")
+)
+
 fun releaseBaseName(versionName: String): String {
     val artifactBaseName = mipushArtifactBaseName()
-    val normalizedVersionName = versionName.replace("\\s+".toRegex(), "_")
+    val normalizedVersionName = artifactVersionName(versionName)
     val alreadyHasBuildTimestamp = versionName.matches(Regex(".*-\\d{8}(?:_\\d{6}|\\d{6})$"))
     if (alreadyHasBuildTimestamp) {
         return "${artifactBaseName}_v$normalizedVersionName"
     }
     val suffix = buildTimestampOverride() ?: releaseTime()
-    return "${artifactBaseName}_v${normalizedVersionName}_$suffix"
+    val separator = if (suffix.contains("_")) "-" else "_"
+    return "${artifactBaseName}_v${normalizedVersionName}${separator}$suffix"
 }
 
 fun releaseApkName(versionName: String, buildType: String, abiSuffix: String): String {
@@ -68,10 +78,11 @@ pluginManager.withPlugin("com.android.application") {
     extensions.getByType<ApplicationAndroidComponentsExtension>().apply {
         onVariants(selector().all()) { variant ->
             val isDebug = variant.buildType == "debug"
+            val baseArtifactVersionName = artifactVersionName(releaseVersionName.get())
             val resolvedVersionName = if (isDebug) {
-                "${releaseVersionName.get()}-$debugBuildTimestamp"
+                "${baseArtifactVersionName}-$debugBuildTimestamp"
             } else {
-                releaseVersionName.get()
+                baseArtifactVersionName
             }
 
             variant.outputs.forEach { output ->

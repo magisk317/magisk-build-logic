@@ -10,7 +10,6 @@ Current plugin set:
 - `relay.android.common`
 - `relay.app.signing`
 - `relay.app.packaging`
-- `relay.app.webui`
 - `mipush.android.application`
 - `mipush.android.library`
 - `mipush.android.compose`
