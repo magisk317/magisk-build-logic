@@ -27,36 +27,30 @@ fun CommonExtension.configureRelayAndroidCommon() {
     if (!flavorDimensions.contains("distribution")) {
         flavorDimensions += "distribution"
     }
-    if (!flavorDimensions.contains("xposedApi")) {
-        flavorDimensions += "xposedApi"
-    }
-
     productFlavors {
         maybeCreate("play").apply {
             dimension = "distribution"
             buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "false")
             buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
             buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "false")
+            buildConfigField("boolean", "HAS_BILLING", "true")
+            buildConfigField("boolean", "HAS_CLOUD_BACKUP", "true")
         }
         maybeCreate("github").apply {
             dimension = "distribution"
             buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
             buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
             buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
+            buildConfigField("boolean", "HAS_BILLING", "false")
+            buildConfigField("boolean", "HAS_CLOUD_BACKUP", "false")
         }
         maybeCreate("fdroid").apply {
             dimension = "distribution"
             buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
             buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "false")
             buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
-        }
-        maybeCreate("legacy").apply {
-            dimension = "xposedApi"
-            buildConfigField("String", "XPOSED_API_FLAVOR", "\"legacy\"")
-        }
-        maybeCreate("api101").apply {
-            dimension = "xposedApi"
-            buildConfigField("String", "XPOSED_API_FLAVOR", "\"api101\"")
+            buildConfigField("boolean", "HAS_BILLING", "false")
+            buildConfigField("boolean", "HAS_CLOUD_BACKUP", "false")
         }
     }
 

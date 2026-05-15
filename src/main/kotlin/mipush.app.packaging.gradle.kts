@@ -49,8 +49,9 @@ fun releaseBaseName(versionName: String): String {
     return "${artifactBaseName}_v${normalizedVersionName}${separator}$suffix"
 }
 
-fun releaseApkName(versionName: String, buildType: String, abiSuffix: String): String {
-    return "${abiSuffix}_${releaseBaseName(versionName)}_${buildType}.apk"
+fun releaseApkName(versionName: String, buildType: String, abiSuffix: String, flavorName: String = ""): String {
+    val flavorTag = if (flavorName.isNotEmpty()) "${flavorName}_" else ""
+    return "${abiSuffix}_${flavorTag}${releaseBaseName(versionName)}_${buildType}.apk"
 }
 
 fun releaseAabName(versionName: String): String = "${releaseBaseName(versionName)}_release.aab"
@@ -98,7 +99,7 @@ pluginManager.withPlugin("com.android.application") {
                     val outputFileName = output.javaClass.getMethod("getOutputFileName").invoke(output)
                     outputFileName.javaClass
                         .getMethod("set", Any::class.java)
-                        .invoke(outputFileName, releaseApkName(resolvedVersionName, variant.buildType ?: "", abi))
+                        .invoke(outputFileName, releaseApkName(resolvedVersionName, variant.buildType ?: "", abi, variant.flavorName ?: ""))
                 } catch (_: Exception) {
                     // Keep the build tolerant across AGP preview API changes.
                 }

@@ -79,8 +79,8 @@ pluginManager.withPlugin("com.android.application") {
                 signingConfig = if (isSigningInfoAvailable) releaseSigningConfig else debugSigningConfig
             }
             maybeCreate("alpha").apply {
-                isMinifyEnabled = true
-                isShrinkResources = true
+                isMinifyEnabled = false
+                isShrinkResources = false
                 isDebuggable = false
                 matchingFallbacks += listOf("release", "debug")
 
@@ -99,8 +99,8 @@ pluginManager.withPlugin("com.android.application") {
                 }
             }
             getByName("release") {
-                isMinifyEnabled = true
-                isShrinkResources = true
+                isMinifyEnabled = false
+                isShrinkResources = false
 
                 buildConfigField("int", "LOG_LEVEL", "4")
                 buildConfigField("boolean", "LOG_TO_XPOSED", "true")

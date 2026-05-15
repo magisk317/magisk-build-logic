@@ -21,19 +21,27 @@ extensions.configure<ApplicationExtension> {
 
     buildTypes {
         debug {
+            val minifyDebug = providers.gradleProperty("minifyDebug")
+                .map { value ->
+                    value.isBlank() || value.equals("true", ignoreCase = true) || value == "1"
+                }
+                .orElse(false)
+                .get()
             signingConfig = signingConfigs.getByName("debug")
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = minifyDebug
+            isShrinkResources = minifyDebug
             isDebuggable = true
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro",
-            )
+            if (minifyDebug) {
+                proguardFiles(
+                    getDefaultProguardFile("proguard-android-optimize.txt"),
+                    "proguard-rules.pro",
+                )
+            }
         }
         release {
             signingConfig = signingConfigs.getByName("release")
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
+            isShrinkResources = false
         }
     }
 

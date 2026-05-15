@@ -24,10 +24,13 @@ Current plugin set:
 - `MiPush`
 - `MiPushFramework`
 
-## Version Catalog
+## Build Dependencies
 
-This repository owns the minimal version catalog required to compile the
-convention plugins in `gradle/libs.versions.toml`.
+When this repository is included as `build-logic/` inside a consumer project, it
+reads the parent project's `gradle/libs.versions.toml` so the convention plugin
+classpath follows the consuming app's AGP, Kotlin, KSP, and Hilt versions.
+
+Standalone checkouts use fallback versions declared in `settings.gradle.kts`.
 
 The plugins themselves still read the target repository's `libs` catalog at
 runtime for application-specific versions such as `compileSdk`, `versionName`,

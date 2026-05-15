@@ -29,7 +29,7 @@ fun releaseBaseName(versionName: String): String {
 }
 
 fun releaseApkName(versionName: String, buildType: String, abiSuffix: String, xposedApiFlavor: String): String {
-    return "${abiSuffix.replace("-", "")}_${xposedApiFlavor}_${releaseBaseName(versionName)}_${buildType}.apk"
+    return "${abiSuffix}_${xposedApiFlavor}_${releaseBaseName(versionName)}_${buildType}.apk"
 }
 
 fun releaseAabName(versionName: String): String = "${releaseBaseName(versionName)}_release.aab"
