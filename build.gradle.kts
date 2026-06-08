@@ -29,8 +29,8 @@ kotlin {
     }
 }
 
-fun forcedDependency(group: String, name: String, versionName: String): String {
-    return "$group:$name:${catalogVersion(versionName)}"
+fun forcedDependency(group: String, name: String, versionAlias: String): String {
+    return "$group:$name:${catalogVersion(versionAlias)}"
 }
 
 configurations.configureEach {

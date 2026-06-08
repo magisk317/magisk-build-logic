@@ -6,7 +6,7 @@ internal data class RelayForcedDependency(
     val versionAlias: String,
 ) {
     fun notation(project: Project): String {
-        return "$group:$name:${project.catalogVersion(versionAlias)}"
+        return "$group:$name:${project.relayForcedVersion(versionAlias)}"
     }
 }
 
@@ -40,8 +40,17 @@ internal fun Project.configureRelayForcedDependencies() {
             val forcedDependency = relayForcedDependencies.firstOrNull {
                 requested.group == it.group && requested.name == it.name
             } ?: return@eachDependency
-            useVersion(catalogVersion(forcedDependency.versionAlias))
+            val forcedVersion = catalogVersionOrNull(forcedDependency.versionAlias)
+                ?: throw IllegalArgumentException(
+                    "Version '${forcedDependency.versionAlias}' not found in consumer libs catalog",
+                )
+            useVersion(forcedVersion)
             because("centralized relay dependency governance")
         }
     }
+}
+
+private fun Project.relayForcedVersion(versionAlias: String): String {
+    return catalogVersionOrNull(versionAlias)
+        ?: throw IllegalArgumentException("Version '$versionAlias' not found in consumer libs catalog")
 }
