@@ -10,8 +10,10 @@ import java.util.TimeZone
 
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 val versionNameStr = libsCatalog.findVersion("versionName").get().requiredVersion
+val versionCodeStr = libsCatalog.findVersion("versionCode").get().requiredVersion
+val releaseArtifactVersionName = "$versionNameStr($versionCodeStr)"
 
-fun releaseTime(): String = SimpleDateFormat("yyMMdd").apply {
+fun releaseTime(): String = SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").apply {
     timeZone = TimeZone.getDefault()
 }.format(Date())
 
@@ -20,22 +22,21 @@ fun buildTimestampOverride(): String? = project.findProperty("buildTs")
     ?.trim()
     ?.takeIf { it.isNotEmpty() }
 
-fun buildTimestamp(): String = buildTimestampOverride() ?: SimpleDateFormat("yyyyMMdd_HHmmss").apply {
+fun buildTimestamp(): String = buildTimestampOverride() ?: SimpleDateFormat("yyyy-MM-dd_HH-mm-ss").apply {
     timeZone = TimeZone.getDefault()
 }.format(Date())
 
 fun releaseBaseName(versionName: String): String {
     val normalizedVersionName = versionName.replace("\\s+".toRegex(), "_")
-    val alreadyHasBuildTimestamp = versionName.matches(Regex(".*-\\d{8}(?:_\\d{6}|\\d{6})$"))
-    if (alreadyHasBuildTimestamp) {
-        return "XinyiRelay_v$normalizedVersionName"
-    }
-    val suffix = buildTimestampOverride() ?: releaseTime()
-    return "XinyiRelay_v${normalizedVersionName}_$suffix"
+    return "XinyiRelay_v$normalizedVersionName"
 }
 
 fun releaseApkName(versionName: String, buildType: String, abiSuffix: String): String {
-    return "${abiSuffix}_${releaseBaseName(versionName)}_${buildType}.apk"
+    val base = releaseBaseName(versionName)
+    if (abiSuffix == "universal" || abiSuffix.isEmpty()) {
+        return "${base}_${buildType}.apk"
+    }
+    return "${base}_${abiSuffix}_${buildType}.apk"
 }
 
 fun releaseAabName(versionName: String): String = "${releaseBaseName(versionName)}_release.aab"
@@ -135,7 +136,7 @@ pluginManager.withPlugin("com.android.application") {
     tasks.register("renamePlayReleaseAab") {
         dependsOn("bundlePlayRelease")
         val bundleFileProvider = layout.buildDirectory.file("outputs/bundle/playRelease/app-play-release.aab")
-        val targetFileProvider = layout.buildDirectory.file("outputs/bundle/playRelease/${releaseAabName(versionNameStr)}")
+        val targetFileProvider = layout.buildDirectory.file("outputs/bundle/playRelease/${releaseAabName(releaseArtifactVersionName)}")
         doLast {
             val bundleFile = bundleFileProvider.get().asFile
             if (bundleFile.exists()) {

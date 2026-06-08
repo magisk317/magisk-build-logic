@@ -4,6 +4,7 @@ import org.gradle.api.artifacts.VersionCatalog
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.getByType
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 internal fun Project.libsCatalog(): VersionCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 
@@ -32,6 +33,9 @@ internal fun Project.catalogLibrary(alias: String): Provider<MinimalExternalModu
     )
 }
 
-internal fun Project.mipushJavaTarget(): String = catalogVersionOrNull("java")
-    ?: catalogVersionOrNull("javaBytecode")
-    ?: "17"
+internal fun Project.mipushJavaTarget(): String = catalogVersion("javaBytecode")
+
+internal fun Project.mipushKotlinJvmTarget(): JvmTarget {
+    val javaTarget = mipushJavaTarget()
+    return JvmTarget.fromTarget(javaTarget)
+}

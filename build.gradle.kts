@@ -1,40 +1,57 @@
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     `kotlin-dsl`
 }
 
 val libsCatalog = extensions.getByType<org.gradle.api.artifacts.VersionCatalogsExtension>().named("libs")
 
-fun catalogVersion(name: String, fallback: String): String {
+fun catalogVersion(name: String): String {
     return libsCatalog.findVersion(name)
-        .map { it.requiredVersion }
-        .orElse(fallback)
+        .orElseThrow { IllegalArgumentException("Version '$name' not found in consumer libs catalog") }
+        .requiredVersion
 }
 
-val agpVersion = catalogVersion("agp", "9.2.1")
-val kotlinVersion = catalogVersion("kotlin", "2.3.21")
-val kspVersion = catalogVersion("ksp", "2.3.7")
-val hiltVersion = catalogVersion("hilt", "2.59.2")
+val agpVersion = catalogVersion("agp")
+val kotlinVersion = catalogVersion("kotlin")
+val kspVersion = catalogVersion("ksp")
+val hiltVersion = catalogVersion("hilt")
+val buildLogicBytecodeVersion = catalogVersion("javaBytecode")
 
-repositories {
-    google()
-    mavenCentral()
-    gradlePluginPortal()
+java {
+    sourceCompatibility = JavaVersion.toVersion(buildLogicBytecodeVersion)
+    targetCompatibility = JavaVersion.toVersion(buildLogicBytecodeVersion)
+}
+
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.fromTarget(buildLogicBytecodeVersion))
+    }
+}
+
+fun forcedDependency(group: String, name: String, versionName: String): String {
+    return "$group:$name:${catalogVersion(versionName)}"
 }
 
 configurations.configureEach {
     resolutionStrategy {
-        force("io.netty:netty-codec:4.1.133.Final")
-        force("io.netty:netty-codec-http:4.1.133.Final")
-        force("io.netty:netty-codec-http2:4.1.133.Final")
-        force("io.netty:netty-common:4.1.118.Final")
-        force("io.netty:netty-handler:4.1.118.Final")
-        force("io.netty:netty-handler-proxy:4.1.133.Final")
-        force("org.apache.commons:commons-lang3:3.18.0")
-        force("org.apache.httpcomponents:httpclient:4.5.13")
-        force("org.bitbucket.b_c:jose4j:0.9.6")
-        force("org.bouncycastle:bcpkix-jdk18on:1.84")
-        force("org.bouncycastle:bcprov-jdk18on:1.84")
-        force("org.jdom:jdom2:2.0.6.1")
+        force(forcedDependency("io.netty", "netty-codec", "netty-codec"))
+        force(forcedDependency("io.netty", "netty-codec-http", "netty-codec"))
+        force(forcedDependency("io.netty", "netty-codec-http2", "netty-codec"))
+        force(forcedDependency("io.netty", "netty-common", "netty-runtime"))
+        force(forcedDependency("io.netty", "netty-handler", "netty-runtime"))
+        force(forcedDependency("io.netty", "netty-handler-proxy", "netty-codec"))
+        force(forcedDependency("org.apache.commons", "commons-lang3", "commons-lang3"))
+        force(forcedDependency("org.apache.httpcomponents", "httpclient", "httpclient"))
+        force(forcedDependency("org.bitbucket.b_c", "jose4j", "jose4j"))
+        force(forcedDependency("org.bouncycastle", "bcpkix-jdk18on", "bouncycastle"))
+        force(forcedDependency("org.bouncycastle", "bcprov-jdk18on", "bouncycastle"))
+        force(forcedDependency("org.jdom", "jdom2", "jdom2"))
+        force(forcedDependency("org.ow2.asm", "asm", "asm"))
+        force(forcedDependency("org.ow2.asm", "asm-commons", "asm"))
+        force(forcedDependency("org.ow2.asm", "asm-tree", "asm"))
+        force(forcedDependency("org.ow2.asm", "asm-util", "asm"))
+        force(forcedDependency("org.ow2.asm", "asm-analysis", "asm"))
     }
 }
 

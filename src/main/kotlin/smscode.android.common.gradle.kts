@@ -7,14 +7,23 @@ import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.withType
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 
-fun versionString(name: String): String = libsCatalog.findVersion(name).get().requiredVersion
+fun versionString(name: String): String = libsCatalog.findVersion(name)
+    .orElseThrow { IllegalArgumentException("Version '$name' not found in consumer libs catalog") }
+    .requiredVersion
+
 fun versionStringOrNull(name: String): String? {
     val version = libsCatalog.findVersion(name)
     return if (version.isPresent) version.get().requiredVersion else null
 }
+
+fun javaTargetString(): String = versionString("javaBytecode")
+
+fun kotlinJvmTarget(): JvmTarget = JvmTarget.fromTarget(javaTargetString())
 
 fun CommonExtension.configureRelayAndroidCommon() {
     val compileSdkApi = versionString("compileSdk").toInt()
@@ -27,9 +36,6 @@ fun CommonExtension.configureRelayAndroidCommon() {
     if (!flavorDimensions.contains("distribution")) {
         flavorDimensions += "distribution"
     }
-    if (!flavorDimensions.contains("xposedApi")) {
-        flavorDimensions += "xposedApi"
-    }
 
     productFlavors {
         maybeCreate("play").apply {
@@ -37,34 +43,33 @@ fun CommonExtension.configureRelayAndroidCommon() {
             buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "false")
             buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
             buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "false")
+            buildConfigField("boolean", "HAS_BILLING", "true")
         }
         maybeCreate("github").apply {
             dimension = "distribution"
             buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
             buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
             buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
+            buildConfigField("boolean", "HAS_BILLING", "false")
         }
         maybeCreate("fdroid").apply {
             dimension = "distribution"
             buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
             buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "false")
             buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
-        }
-        maybeCreate("legacy").apply {
-            dimension = "xposedApi"
-            buildConfigField("String", "XPOSED_API_FLAVOR", "\"legacy\"")
-        }
-        maybeCreate("api101").apply {
-            dimension = "xposedApi"
-            buildConfigField("String", "XPOSED_API_FLAVOR", "\"api101\"")
+            buildConfigField("boolean", "HAS_BILLING", "false")
         }
     }
 
     compileOptions.apply {
-        val javaVersion = JavaVersion.toVersion(versionString("javaBytecode"))
+        val javaVersion = JavaVersion.toVersion(javaTargetString())
         sourceCompatibility = javaVersion
         targetCompatibility = javaVersion
     }
+}
+
+tasks.withType<KotlinJvmCompile>().configureEach {
+    compilerOptions.jvmTarget.set(kotlinJvmTarget())
 }
 
 pluginManager.withPlugin("com.android.application") {

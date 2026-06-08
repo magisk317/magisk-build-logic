@@ -7,6 +7,7 @@ pluginManagement {
 }
 
 dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
         mavenCentral()
@@ -15,14 +16,10 @@ dependencyResolutionManagement {
     versionCatalogs {
         create("libs") {
             val parentCatalog = file("../gradle/libs.versions.toml")
-            if (parentCatalog.isFile) {
-                from(files(parentCatalog))
-            } else {
-                version("agp", "9.2.1")
-                version("kotlin", "2.3.21")
-                version("ksp", "2.3.7")
-                version("hilt", "2.59.2")
+            check(parentCatalog.isFile) {
+                "magisk-build-logic requires a consumer catalog at ../gradle/libs.versions.toml"
             }
+            from(files(parentCatalog))
         }
     }
 }

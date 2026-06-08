@@ -28,9 +28,11 @@ Current plugin set:
 
 When this repository is included as `build-logic/` inside a consumer project, it
 reads the parent project's `gradle/libs.versions.toml` so the convention plugin
-classpath follows the consuming app's AGP, Kotlin, KSP, and Hilt versions.
+classpath follows the consuming app's AGP, Kotlin, KSP, Hilt, Java bytecode,
+and dependency-governance versions.
 
-Standalone checkouts use fallback versions declared in `settings.gradle.kts`.
+The consumer catalog is required; this repository does not carry fallback
+toolchain or dependency versions.
 
 The plugins themselves still read the target repository's `libs` catalog at
 runtime for application-specific versions such as `compileSdk`, `versionName`,

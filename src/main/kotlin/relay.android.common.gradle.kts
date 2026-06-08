@@ -7,14 +7,23 @@ import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByType
 import org.gradle.kotlin.dsl.withType
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 
-fun versionString(name: String): String = libsCatalog.findVersion(name).get().requiredVersion
+fun versionString(name: String): String = libsCatalog.findVersion(name)
+    .orElseThrow { IllegalArgumentException("Version '$name' not found in consumer libs catalog") }
+    .requiredVersion
+
 fun versionStringOrNull(name: String): String? {
     val version = libsCatalog.findVersion(name)
     return if (version.isPresent) version.get().requiredVersion else null
 }
+
+fun javaTargetString(): String = versionString("javaBytecode")
+
+fun kotlinJvmTarget(): JvmTarget = JvmTarget.fromTarget(javaTargetString())
 
 fun CommonExtension.configureRelayAndroidCommon() {
     val compileSdkApi = versionString("compileSdk").toInt()
@@ -55,10 +64,14 @@ fun CommonExtension.configureRelayAndroidCommon() {
     }
 
     compileOptions.apply {
-        val javaVersion = JavaVersion.toVersion(versionString("javaBytecode"))
+        val javaVersion = JavaVersion.toVersion(javaTargetString())
         sourceCompatibility = javaVersion
         targetCompatibility = javaVersion
     }
+}
+
+tasks.withType<KotlinJvmCompile>().configureEach {
+    compilerOptions.jvmTarget.set(kotlinJvmTarget())
 }
 
 pluginManager.withPlugin("com.android.application") {
