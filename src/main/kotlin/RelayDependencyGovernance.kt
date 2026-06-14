@@ -20,7 +20,6 @@ internal val relayForcedDependencies = listOf(
     RelayForcedDependency("io.netty", "netty-handler", "netty-runtime"),
     RelayForcedDependency("io.netty", "netty-handler-proxy", "netty-codec"),
     RelayForcedDependency("org.apache.commons", "commons-lang3", "commons-lang3"),
-    RelayForcedDependency("org.apache.httpcomponents", "httpclient", "httpclient"),
     RelayForcedDependency("org.bitbucket.b_c", "jose4j", "jose4j"),
     RelayForcedDependency("org.bouncycastle", "bcpkix-jdk18on", "bouncycastle"),
     RelayForcedDependency("org.bouncycastle", "bcprov-jdk18on", "bouncycastle"),

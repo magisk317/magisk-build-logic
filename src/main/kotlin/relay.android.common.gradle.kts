@@ -1,6 +1,8 @@
 import com.android.build.api.dsl.CommonExtension
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
+import com.android.build.api.variant.DynamicFeatureAndroidComponentsExtension
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
+import com.android.build.api.variant.VariantBuilder
 import org.gradle.api.JavaVersion
 import org.gradle.api.artifacts.VersionCatalogsExtension
 import org.gradle.api.tasks.testing.Test
@@ -36,6 +38,9 @@ fun CommonExtension.configureRelayAndroidCommon() {
     if (!flavorDimensions.contains("distribution")) {
         flavorDimensions += "distribution"
     }
+    if (!flavorDimensions.contains("e2ee")) {
+        flavorDimensions += "e2ee"
+    }
     productFlavors {
         maybeCreate("play").apply {
             dimension = "distribution"
@@ -60,6 +65,17 @@ fun CommonExtension.configureRelayAndroidCommon() {
             buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
             buildConfigField("boolean", "HAS_BILLING", "false")
             buildConfigField("boolean", "HAS_CLOUD_BACKUP", "false")
+        }
+        maybeCreate("noE2ee").apply {
+            dimension = "e2ee"
+            buildConfigField("boolean", "HAS_MATRIX_E2EE", "false")
+        }
+        maybeCreate("withE2ee").apply {
+            dimension = "e2ee"
+            buildConfigField("boolean", "HAS_MATRIX_E2EE", "true")
+            // Only ship arm64-v8a native libs to keep APK size reasonable
+            // (matrix-rust-sdk .so is ~60 MB per ABI)
+            ndk { abiFilters += "arm64-v8a" }
         }
     }
 
@@ -97,6 +113,12 @@ pluginManager.withPlugin("com.android.library") {
         if (variantBuilder.productFlavors.toMap()["distribution"] == "fdroid") {
             variantBuilder.enable = false
         }
+    }
+}
+
+pluginManager.withPlugin("com.android.dynamic-feature") {
+    extensions.configure<CommonExtension> {
+        configureRelayAndroidCommon()
     }
 }
 

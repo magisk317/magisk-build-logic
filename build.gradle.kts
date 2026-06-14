@@ -15,7 +15,6 @@ fun catalogVersion(name: String): String {
 val agpVersion = catalogVersion("agp")
 val kotlinVersion = catalogVersion("kotlin")
 val kspVersion = catalogVersion("ksp")
-val hiltVersion = catalogVersion("hilt")
 val buildLogicBytecodeVersion = catalogVersion("javaBytecode")
 
 java {
@@ -42,7 +41,6 @@ configurations.configureEach {
         force(forcedDependency("io.netty", "netty-handler", "netty-runtime"))
         force(forcedDependency("io.netty", "netty-handler-proxy", "netty-codec"))
         force(forcedDependency("org.apache.commons", "commons-lang3", "commons-lang3"))
-        force(forcedDependency("org.apache.httpcomponents", "httpclient", "httpclient"))
         force(forcedDependency("org.bitbucket.b_c", "jose4j", "jose4j"))
         force(forcedDependency("org.bouncycastle", "bcpkix-jdk18on", "bouncycastle"))
         force(forcedDependency("org.bouncycastle", "bcprov-jdk18on", "bouncycastle"))
@@ -60,5 +58,4 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     implementation("org.jetbrains.kotlin:compose-compiler-gradle-plugin:$kotlinVersion")
     implementation("com.google.devtools.ksp:symbol-processing-gradle-plugin:$kspVersion")
-    implementation("com.google.dagger:hilt-android-gradle-plugin:$hiltVersion")
 }

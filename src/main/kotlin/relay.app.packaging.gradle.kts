@@ -31,12 +31,17 @@ fun releaseBaseName(versionName: String): String {
     return "XinyiRelay_v$normalizedVersionName"
 }
 
-fun releaseApkName(versionName: String, buildType: String, abiSuffix: String): String {
+fun releaseApkName(versionName: String, buildType: String, abiSuffix: String, e2eeFlavor: String = ""): String {
     val base = releaseBaseName(versionName)
-    if (abiSuffix == "universal" || abiSuffix.isEmpty()) {
-        return "${base}_${buildType}.apk"
+    val e2eeTag = when (e2eeFlavor) {
+        "withE2ee" -> "_e2ee"
+        "noE2ee" -> "_noE2ee"
+        else -> ""
     }
-    return "${base}_${abiSuffix}_${buildType}.apk"
+    if (abiSuffix == "universal" || abiSuffix.isEmpty()) {
+        return "${base}_universal${e2eeTag}_${buildType}.apk"
+    }
+    return "${base}_${abiSuffix}${e2eeTag}_${buildType}.apk"
 }
 
 fun releaseAabName(versionName: String): String = "${releaseBaseName(versionName)}_release.aab"
@@ -102,6 +107,14 @@ pluginManager.withPlugin("com.android.application") {
                 return@beforeVariants
             }
 
+            // only github ships both noE2ee and withE2ee APKs;
+            // play uses Dynamic Feature Module for on-demand E2EE
+            val e2ee = flavors["e2ee"]
+            if (e2ee == "withE2ee" && distribution != "github") {
+                variantBuilder.enable = false
+                return@beforeVariants
+            }
+
             if (isBundleTask && distribution != "play") {
                 variantBuilder.enable = false
             }
@@ -111,6 +124,7 @@ pluginManager.withPlugin("com.android.application") {
             val isDebug = variant.buildType == "debug"
             val suffix = if (isDebug) debugBuildTimestamp else ""
             val resolvedVersionName = if (isDebug) "$versionNameStr-$suffix" else versionNameStr
+            val e2eeFlavor = variant.productFlavors.toMap()["e2ee"] ?: ""
 
             variant.outputs.forEach { output ->
                 if (isDebug) {
@@ -125,7 +139,7 @@ pluginManager.withPlugin("com.android.application") {
                     val outputFileName = output.javaClass.getMethod("getOutputFileName").invoke(output)
                     outputFileName.javaClass
                         .getMethod("set", Any::class.java)
-                        .invoke(outputFileName, releaseApkName(resolvedVersionName, variant.buildType ?: "", abi))
+                        .invoke(outputFileName, releaseApkName(resolvedVersionName, variant.buildType ?: "", abi, e2eeFlavor))
                 } catch (_: Exception) {
                     // AGP preview APIs can shift; keep the build tolerant here.
                 }
