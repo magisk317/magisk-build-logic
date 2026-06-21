@@ -1,80 +1,89 @@
-import com.android.build.api.dsl.CommonExtension
+import com.android.build.api.dsl.ApplicationExtension
+import com.android.build.api.dsl.ApplicationProductFlavor
+import com.android.build.api.dsl.LibraryExtension
+import com.android.build.api.dsl.LibraryProductFlavor
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
-import org.gradle.api.JavaVersion
-import org.gradle.api.artifacts.VersionCatalogsExtension
-import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByType
-import org.gradle.kotlin.dsl.withType
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
-val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
-
-fun versionString(name: String): String = libsCatalog.findVersion(name)
-    .orElseThrow { IllegalArgumentException("Version '$name' not found in consumer libs catalog") }
-    .requiredVersion
-
-fun versionStringOrNull(name: String): String? {
-    val version = libsCatalog.findVersion(name)
-    return if (version.isPresent) version.get().requiredVersion else null
+plugins {
+    id("magisk.android.common")
 }
 
-fun javaTargetString(): String = versionString("javaBytecode")
-
-fun kotlinJvmTarget(): JvmTarget = JvmTarget.fromTarget(javaTargetString())
-
-fun CommonExtension.configureRelayAndroidCommon() {
-    val compileSdkApi = versionString("compileSdk").toInt()
-    compileSdk = compileSdkApi
-    if (compileSdkApi >= 35) {
-        compileSdkMinor = 0
+private fun configureSmscodeFlavor(flavor: ApplicationProductFlavor) {
+    when (flavor.name) {
+        "play" -> {
+            flavor.dimension = "distribution"
+            flavor.buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "false")
+            flavor.buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
+            flavor.buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "false")
+            flavor.buildConfigField("boolean", "HAS_BILLING", "true")
+        }
+        "github" -> {
+            flavor.dimension = "distribution"
+            flavor.buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
+            flavor.buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
+            flavor.buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
+            flavor.buildConfigField("boolean", "HAS_BILLING", "false")
+        }
+        "fdroid" -> {
+            flavor.dimension = "distribution"
+            flavor.buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
+            flavor.buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "false")
+            flavor.buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
+            flavor.buildConfigField("boolean", "HAS_BILLING", "false")
+        }
     }
-    versionStringOrNull("compileSdkExtension")?.toIntOrNull()?.let { compileSdkExtension = it }
+}
 
-    if (!flavorDimensions.contains("distribution")) {
-        flavorDimensions += "distribution"
+private fun configureSmscodeFlavor(flavor: LibraryProductFlavor) {
+    when (flavor.name) {
+        "play" -> {
+            flavor.dimension = "distribution"
+            flavor.buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "false")
+            flavor.buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
+            flavor.buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "false")
+            flavor.buildConfigField("boolean", "HAS_BILLING", "true")
+        }
+        "github" -> {
+            flavor.dimension = "distribution"
+            flavor.buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
+            flavor.buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
+            flavor.buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
+            flavor.buildConfigField("boolean", "HAS_BILLING", "false")
+        }
+        "fdroid" -> {
+            flavor.dimension = "distribution"
+            flavor.buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
+            flavor.buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "false")
+            flavor.buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
+            flavor.buildConfigField("boolean", "HAS_BILLING", "false")
+        }
     }
+}
 
+private fun ApplicationExtension.configureSmscodeFlavors() {
+    flavorDimensions.add("distribution")
     productFlavors {
-        maybeCreate("play").apply {
-            dimension = "distribution"
-            buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "false")
-            buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
-            buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "false")
-            buildConfigField("boolean", "HAS_BILLING", "true")
-        }
-        maybeCreate("github").apply {
-            dimension = "distribution"
-            buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
-            buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
-            buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
-            buildConfigField("boolean", "HAS_BILLING", "false")
-        }
-        maybeCreate("fdroid").apply {
-            dimension = "distribution"
-            buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
-            buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "false")
-            buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
-            buildConfigField("boolean", "HAS_BILLING", "false")
-        }
-    }
-
-    compileOptions.apply {
-        val javaVersion = JavaVersion.toVersion(javaTargetString())
-        sourceCompatibility = javaVersion
-        targetCompatibility = javaVersion
+        maybeCreate("play").also(::configureSmscodeFlavor)
+        maybeCreate("github").also(::configureSmscodeFlavor)
+        maybeCreate("fdroid").also(::configureSmscodeFlavor)
     }
 }
 
-tasks.withType<KotlinJvmCompile>().configureEach {
-    compilerOptions.jvmTarget.set(kotlinJvmTarget())
+private fun LibraryExtension.configureSmscodeFlavors() {
+    flavorDimensions.add("distribution")
+    productFlavors {
+        maybeCreate("play").also(::configureSmscodeFlavor)
+        maybeCreate("github").also(::configureSmscodeFlavor)
+        maybeCreate("fdroid").also(::configureSmscodeFlavor)
+    }
 }
 
 pluginManager.withPlugin("com.android.application") {
-    extensions.configure<CommonExtension> {
-        configureRelayAndroidCommon()
+    extensions.configure<ApplicationExtension> {
+        configureSmscodeFlavors()
     }
     extensions.getByType<ApplicationAndroidComponentsExtension>().beforeVariants(
         extensions.getByType<ApplicationAndroidComponentsExtension>().selector().all(),
@@ -86,8 +95,8 @@ pluginManager.withPlugin("com.android.application") {
 }
 
 pluginManager.withPlugin("com.android.library") {
-    extensions.configure<CommonExtension> {
-        configureRelayAndroidCommon()
+    extensions.configure<LibraryExtension> {
+        configureSmscodeFlavors()
     }
     extensions.getByType<LibraryAndroidComponentsExtension>().beforeVariants(
         extensions.getByType<LibraryAndroidComponentsExtension>().selector().all(),
@@ -96,8 +105,4 @@ pluginManager.withPlugin("com.android.library") {
             variantBuilder.enable = false
         }
     }
-}
-
-tasks.withType<Test>().configureEach {
-    useJUnitPlatform()
 }

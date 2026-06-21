@@ -5,17 +5,15 @@ Shared Gradle convention plugins for the Magisk317 Android app family.
 Current plugin set:
 
 - `smscode.android.common`
-- `smscode.app.signing`
-- `smscode.app.packaging`
 - `relay.android.common`
-- `relay.app.signing`
-- `relay.app.packaging`
-- `mipush.android.application`
-- `mipush.android.library`
-- `mipush.android.compose`
-- `mipush.android.hilt`
-- `mipush.android.room`
-- `mipush.app.packaging`
+- `magisk.android.application`
+- `magisk.android.common`
+- `magisk.android.compose`
+- `magisk.android.library`
+- `magisk.android.room`
+- `magisk.app.packaging`
+- `magisk.app.signing`
+- `magisk.maintenance`
 
 ## Consumers
 
@@ -29,7 +27,7 @@ Current plugin set:
 When this repository is included as `build-logic/` inside a consumer project, it
 reads the parent project's `gradle/libs.versions.toml` so the convention plugin
 classpath follows the consuming app's AGP, Kotlin, KSP, Hilt, Java bytecode,
-and dependency-governance versions.
+and forced-dependency versions.
 
 The consumer catalog is required; this repository does not carry fallback
 toolchain or dependency versions.
@@ -48,8 +46,8 @@ pluginManagement {
 }
 ```
 
-For `mipush.app.packaging`, consumers can override the artifact base name:
+For `magisk.app.packaging`, consumers can override the artifact base name:
 
 ```kotlin
-extra["mipushArtifactBaseName"] = "MiPushFramework"
+extra["artifactBaseName"] = "MiPushFramework"
 ```

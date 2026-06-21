@@ -5,11 +5,10 @@ import org.gradle.kotlin.dsl.withType
 
 plugins {
     id("com.android.library")
+    id("magisk.android.common")
 }
 
 extensions.configure<LibraryExtension> {
-    project.configureMipushAndroidCommon(this)
-
     defaultConfig {
         minSdk = project.catalogInt("minSdk")
     }

@@ -1,3 +1,0 @@
-rootProject.allprojects {
-    configureRelayForcedDependencies()
-}

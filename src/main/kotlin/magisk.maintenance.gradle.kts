@@ -2,6 +2,7 @@ val cleanupTask = tasks.register("cleanupGradleCaches") {
     group = "maintenance"
     description = "Remove stale Gradle version caches under .gradle directories."
     val workspaceDir = layout.projectDirectory.asFile
+    val currentGradleVersion = gradle.gradleVersion
     
     doLast {
         // Find all .gradle directories in the workspace
@@ -18,16 +19,18 @@ val cleanupTask = tasks.register("cleanupGradleCaches") {
         gradleDirs.forEach { dir ->
             // Versions are directories starting with a digit (e.g., 8.10, 9.5.0-rc-4)
             val versions = dir.listFiles { file ->
-                file.isDirectory && file.name.firstOrNull()?.isDigit() == true
+                file.isDirectory && file.name.firstOrNull()?.isDigit() == true && file.name != currentGradleVersion
             }?.sortedWith(compareBy({ version ->
                 // Semantic sort: pre-release (rc, milestone, etc.) sorts before
                 // the corresponding release. E.g. 9.5.0-rc-4 < 9.5.0.
                 val base = version.name.substringBefore("-")
                 val parts = base.split(".").map { it.toIntOrNull() ?: 0 }
-                (parts + List(3) { 0 }).take(3).joinToString("%05d")
+                parts.joinToString("") { String.format("%05d", it) }
             }, { version ->
                 // Release (no suffix) sorts after pre-release.
                 if (version.name.contains("-")) "0" else "1"
+            }, { version ->
+                version.name.substringAfter("-", "")
             }))
 
             if (versions != null && versions.size > 1) {

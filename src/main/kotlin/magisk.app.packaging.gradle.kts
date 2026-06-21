@@ -9,9 +9,16 @@ import java.util.Date
 import java.util.TimeZone
 
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
-val versionNameStr = libsCatalog.findVersion("versionName").get().requiredVersion
 
-fun releaseTime(): String = SimpleDateFormat("yyMMdd").apply {
+fun versionStringOrNull(name: String): String? {
+    val version = libsCatalog.findVersion(name)
+    return if (version.isPresent) version.get().requiredVersion else null
+}
+
+val versionNameStr = versionStringOrNull("versionName") ?: rootProject.version.toString()
+val versionCodeStr = versionStringOrNull("versionCode") ?: "1"
+
+fun releaseTime(): String = SimpleDateFormat("yyyyMMdd_HHmmss").apply {
     timeZone = TimeZone.getDefault()
 }.format(Date())
 
@@ -20,19 +27,37 @@ fun buildTimestampOverride(): String? = project.findProperty("buildTs")
     ?.trim()
     ?.takeIf { it.isNotEmpty() }
 
-fun buildTimestamp(): String = buildTimestampOverride() ?: SimpleDateFormat("yyyyMMddHHmmss").apply {
-    timeZone = TimeZone.getDefault()
-}.format(Date())
+fun buildTimestamp(): String = buildTimestampOverride() ?: releaseTime()
 
 fun releaseBaseName(versionName: String): String {
-    return "XposedSmsCode_v${versionName.replace("\\s+".toRegex(), "_")}_${releaseTime()}"
+    val configured = project.findProperty("artifactBaseName")
+        ?.toString()
+        ?.trim()
+        ?.takeIf { it.isNotEmpty() }
+        ?: rootProject.name
+    val base = configured.replace("\\s+".toRegex(), "_")
+    val normalizedVersionName = versionName.replace("\\s+".toRegex(), "_")
+    return "${base}_v$normalizedVersionName"
 }
 
-fun releaseApkName(versionName: String, buildType: String, abiSuffix: String): String {
-    return "${abiSuffix}_${releaseBaseName(versionName)}_${buildType}.apk"
+fun releaseApkName(versionName: String, buildType: String, abiSuffix: String, flavorName: String = ""): String {
+    val base = releaseBaseName(versionName)
+    val flavorTag = if (flavorName.isNotEmpty()) "${flavorName}_" else ""
+    return "${abiSuffix}_${flavorTag}${base}_${buildType}.apk"
 }
 
 fun releaseAabName(versionName: String): String = "${releaseBaseName(versionName)}_release.aab"
+
+fun registerTaskAlias(aliasName: String, targetName: String, descriptionText: String) {
+    if (tasks.names.contains(aliasName)) {
+        return
+    }
+    tasks.register(aliasName) {
+        group = "build"
+        description = descriptionText
+        dependsOn(targetName)
+    }
+}
 
 val debugBuildTimestamp = buildTimestamp()
 val isBundleTask = gradle.startParameter.taskNames.any { it.contains("bundle", ignoreCase = true) }
@@ -75,7 +100,7 @@ pluginManager.withPlugin("com.android.application") {
     tasks.matching {
         it.name.startsWith("bundle")
     }.configureEach {
-        if (!name.contains("Play") && !name.contains("ClassesTo")) {
+        if (!name.contains("Play") && !name.contains("ClassesTo") && !name.contains("Release")) {
             enabled = false
         }
     }
@@ -84,25 +109,28 @@ pluginManager.withPlugin("com.android.application") {
         beforeVariants(selector().all()) { variantBuilder ->
             val flavors = variantBuilder.productFlavors.toMap()
             val distribution = flavors["distribution"]
-            val distributionEnabled = when (distribution) {
-                "play", "github" -> true
-                "fdroid" -> false
-                else -> false
-            }
-            if (!distributionEnabled) {
-                variantBuilder.enable = false
-                return@beforeVariants
+            if (distribution != null) {
+                val distributionEnabled = when (distribution) {
+                    "play", "github", "githubNoE2ee", "githubWithE2ee" -> true
+                    "fdroid" -> false
+                    else -> false
+                }
+                if (!distributionEnabled) {
+                    variantBuilder.enable = false
+                    return@beforeVariants
+                }
             }
 
-            if (isBundleTask && distribution != "play") {
+            if (isBundleTask && distribution != "play" && distribution != null) {
                 variantBuilder.enable = false
             }
         }
 
         onVariants(selector().all()) { variant ->
             val isDebug = variant.buildType == "debug"
-            val suffix = if (isDebug) debugBuildTimestamp else ""
-            val resolvedVersionName = if (isDebug) "$versionNameStr-$suffix" else versionNameStr
+            val suffix = if (isDebug) "-$debugBuildTimestamp" else ""
+            val resolvedVersionName = "$versionNameStr$suffix"
+            
             variant.outputs.forEach { output ->
                 if (isDebug) {
                     output.versionName.set(resolvedVersionName)
@@ -116,28 +144,33 @@ pluginManager.withPlugin("com.android.application") {
                     val outputFileName = output.javaClass.getMethod("getOutputFileName").invoke(output)
                     outputFileName.javaClass
                         .getMethod("set", Any::class.java)
-                        .invoke(outputFileName, releaseApkName(resolvedVersionName, variant.buildType ?: "", abi))
+                        .invoke(outputFileName, releaseApkName(resolvedVersionName, variant.buildType ?: "", abi, variant.flavorName ?: ""))
                 } catch (_: Exception) {
-                    // AGP preview APIs can shift; keep the build tolerant here.
+                    // Ignore
                 }
             }
         }
     }
 
-    tasks.register("renamePlayReleaseAab") {
-        dependsOn("bundlePlayRelease")
-        val bundleFileProvider = layout.buildDirectory.file("outputs/bundle/playRelease/app-play-release.aab")
-        val targetFileProvider = layout.buildDirectory.file("outputs/bundle/playRelease/${releaseAabName(versionNameStr)}")
+    tasks.register("renameReleaseAab") {
+        dependsOn("bundleRelease", "bundlePlayRelease")
+        val bundleFileProvider = layout.buildDirectory.file("outputs/bundle/release/app-release.aab")
+        val playBundleFileProvider = layout.buildDirectory.file("outputs/bundle/playRelease/app-play-release.aab")
+        val targetFileProvider = layout.buildDirectory.file("outputs/bundle/release/${releaseAabName(versionNameStr)}")
         doLast {
             val bundleFile = bundleFileProvider.get().asFile
-            if (bundleFile.exists()) {
-                val target = targetFileProvider.get().asFile
+            val playBundleFile = playBundleFileProvider.get().asFile
+            val target = targetFileProvider.get().asFile
+            
+            if (playBundleFile.exists()) {
+                playBundleFile.copyTo(target, overwrite = true)
+            } else if (bundleFile.exists()) {
                 bundleFile.copyTo(target, overwrite = true)
             }
         }
     }
 
-    tasks.matching { it.name == "bundlePlayRelease" }.configureEach {
-        finalizedBy("renamePlayReleaseAab")
+    tasks.matching { it.name == "bundlePlayRelease" || it.name == "bundleRelease" }.configureEach {
+        finalizedBy("renameReleaseAab")
     }
 }

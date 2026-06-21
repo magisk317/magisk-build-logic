@@ -33,9 +33,9 @@ internal fun Project.catalogLibrary(alias: String): Provider<MinimalExternalModu
     )
 }
 
-internal fun Project.mipushJavaTarget(): String = catalogVersion("javaBytecode")
+internal fun Project.magiskJavaTarget(): String = catalogVersion("javaBytecode")
 
-internal fun Project.mipushKotlinJvmTarget(): JvmTarget {
-    val javaTarget = mipushJavaTarget()
+internal fun Project.magiskKotlinJvmTarget(): JvmTarget {
+    val javaTarget = magiskJavaTarget()
     return JvmTarget.fromTarget(javaTarget)
 }

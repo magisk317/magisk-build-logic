@@ -3,20 +3,13 @@ import org.gradle.kotlin.dsl.configure
 
 plugins {
     id("com.android.application")
+    id("magisk.android.common")
 }
 
 extensions.configure<ApplicationExtension> {
-    project.configureMipushAndroidCommon(this)
-
     defaultConfig {
         minSdk = project.catalogInt("minSdk")
         targetSdk = project.catalogInt("targetSdk")
-    }
-
-    signingConfigs {
-        val signing = project.resolveMipushSigningMaterial()
-        getByName("debug").applySigningMaterial(signing)
-        maybeCreate("release").applySigningMaterial(signing)
     }
 
     buildTypes {
@@ -27,7 +20,6 @@ extensions.configure<ApplicationExtension> {
                 }
                 .orElse(false)
                 .get()
-            signingConfig = signingConfigs.getByName("debug")
             isMinifyEnabled = minifyDebug
             isShrinkResources = minifyDebug
             isDebuggable = true
@@ -39,7 +31,6 @@ extensions.configure<ApplicationExtension> {
             }
         }
         release {
-            signingConfig = signingConfigs.getByName("release")
             isMinifyEnabled = false
             isShrinkResources = false
         }

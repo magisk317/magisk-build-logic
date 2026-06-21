@@ -1,127 +1,194 @@
-import com.android.build.api.dsl.CommonExtension
+import com.android.build.api.dsl.ApplicationExtension
+import com.android.build.api.dsl.ApplicationProductFlavor
+import com.android.build.api.dsl.DynamicFeatureExtension
+import com.android.build.api.dsl.DynamicFeatureProductFlavor
+import com.android.build.api.dsl.LibraryExtension
+import com.android.build.api.dsl.LibraryProductFlavor
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.DynamicFeatureAndroidComponentsExtension
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
-import com.android.build.api.variant.VariantBuilder
-import org.gradle.api.JavaVersion
-import org.gradle.api.artifacts.VersionCatalogsExtension
-import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByType
-import org.gradle.kotlin.dsl.withType
-import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
 
-val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
-
-fun versionString(name: String): String = libsCatalog.findVersion(name)
-    .orElseThrow { IllegalArgumentException("Version '$name' not found in consumer libs catalog") }
-    .requiredVersion
-
-fun versionStringOrNull(name: String): String? {
-    val version = libsCatalog.findVersion(name)
-    return if (version.isPresent) version.get().requiredVersion else null
+plugins {
+    id("magisk.android.common")
 }
 
-fun javaTargetString(): String = versionString("javaBytecode")
+val DISTRIBUTION_DIMENSION = "distribution"
+val PLAY_FLAVOR = "play"
+val GITHUB_NO_E2EE_FLAVOR = "githubNoE2ee"
+val GITHUB_WITH_E2EE_FLAVOR = "githubWithE2ee"
+val FDROID_FLAVOR = "fdroid"
 
-fun kotlinJvmTarget(): JvmTarget = JvmTarget.fromTarget(javaTargetString())
-
-fun CommonExtension.configureRelayAndroidCommon() {
-    val compileSdkApi = versionString("compileSdk").toInt()
-    compileSdk = compileSdkApi
-    if (compileSdkApi >= 35) {
-        compileSdkMinor = 0
-    }
-    versionStringOrNull("compileSdkExtension")?.toIntOrNull()?.let { compileSdkExtension = it }
-
-    if (!flavorDimensions.contains("distribution")) {
-        flavorDimensions += "distribution"
-    }
-    if (!flavorDimensions.contains("e2ee")) {
-        flavorDimensions += "e2ee"
-    }
-    productFlavors {
-        maybeCreate("play").apply {
-            dimension = "distribution"
-            buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "false")
-            buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
-            buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "false")
-            buildConfigField("boolean", "HAS_BILLING", "true")
-            buildConfigField("boolean", "HAS_CLOUD_BACKUP", "true")
+private fun configureRelayFlavor(flavor: ApplicationProductFlavor) {
+    when (flavor.name) {
+        PLAY_FLAVOR -> {
+            flavor.dimension = DISTRIBUTION_DIMENSION
+            flavor.buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "false")
+            flavor.buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
+            flavor.buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "false")
+            flavor.buildConfigField("boolean", "HAS_BILLING", "true")
+            flavor.buildConfigField("boolean", "HAS_CLOUD_BACKUP", "true")
+            flavor.buildConfigField("boolean", "HAS_MATRIX_E2EE", "true")
         }
-        maybeCreate("github").apply {
-            dimension = "distribution"
-            buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
-            buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
-            buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
-            buildConfigField("boolean", "HAS_BILLING", "false")
-            buildConfigField("boolean", "HAS_CLOUD_BACKUP", "false")
+        GITHUB_NO_E2EE_FLAVOR -> {
+            flavor.dimension = DISTRIBUTION_DIMENSION
+            flavor.buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
+            flavor.buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
+            flavor.buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
+            flavor.buildConfigField("boolean", "HAS_BILLING", "false")
+            flavor.buildConfigField("boolean", "HAS_CLOUD_BACKUP", "false")
+            flavor.buildConfigField("boolean", "HAS_MATRIX_E2EE", "false")
         }
-        maybeCreate("fdroid").apply {
-            dimension = "distribution"
-            buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
-            buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "false")
-            buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
-            buildConfigField("boolean", "HAS_BILLING", "false")
-            buildConfigField("boolean", "HAS_CLOUD_BACKUP", "false")
-        }
-        maybeCreate("noE2ee").apply {
-            dimension = "e2ee"
-            buildConfigField("boolean", "HAS_MATRIX_E2EE", "false")
-        }
-        maybeCreate("withE2ee").apply {
-            dimension = "e2ee"
-            buildConfigField("boolean", "HAS_MATRIX_E2EE", "true")
+        GITHUB_WITH_E2EE_FLAVOR -> {
+            flavor.dimension = DISTRIBUTION_DIMENSION
+            flavor.buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
+            flavor.buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
+            flavor.buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
+            flavor.buildConfigField("boolean", "HAS_BILLING", "false")
+            flavor.buildConfigField("boolean", "HAS_CLOUD_BACKUP", "false")
+            flavor.buildConfigField("boolean", "HAS_MATRIX_E2EE", "true")
             // Only ship arm64-v8a native libs to keep APK size reasonable
             // (matrix-rust-sdk .so is ~60 MB per ABI)
-            ndk { abiFilters += "arm64-v8a" }
+            flavor.ndk { abiFilters.add("arm64-v8a") }
         }
-    }
-
-    compileOptions.apply {
-        val javaVersion = JavaVersion.toVersion(javaTargetString())
-        sourceCompatibility = javaVersion
-        targetCompatibility = javaVersion
+        FDROID_FLAVOR -> {
+            flavor.dimension = DISTRIBUTION_DIMENSION
+            flavor.buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
+            flavor.buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "false")
+            flavor.buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
+            flavor.buildConfigField("boolean", "HAS_BILLING", "false")
+            flavor.buildConfigField("boolean", "HAS_CLOUD_BACKUP", "false")
+            flavor.buildConfigField("boolean", "HAS_MATRIX_E2EE", "false")
+        }
     }
 }
 
-tasks.withType<KotlinJvmCompile>().configureEach {
-    compilerOptions.jvmTarget.set(kotlinJvmTarget())
+private fun configureRelayFlavor(flavor: LibraryProductFlavor) {
+    when (flavor.name) {
+        PLAY_FLAVOR -> {
+            flavor.dimension = DISTRIBUTION_DIMENSION
+            flavor.buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "false")
+            flavor.buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
+            flavor.buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "false")
+            flavor.buildConfigField("boolean", "HAS_BILLING", "true")
+            flavor.buildConfigField("boolean", "HAS_CLOUD_BACKUP", "true")
+            flavor.buildConfigField("boolean", "HAS_MATRIX_E2EE", "true")
+        }
+        GITHUB_NO_E2EE_FLAVOR -> {
+            flavor.dimension = DISTRIBUTION_DIMENSION
+            flavor.buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
+            flavor.buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
+            flavor.buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
+            flavor.buildConfigField("boolean", "HAS_BILLING", "false")
+            flavor.buildConfigField("boolean", "HAS_CLOUD_BACKUP", "false")
+            flavor.buildConfigField("boolean", "HAS_MATRIX_E2EE", "false")
+        }
+        GITHUB_WITH_E2EE_FLAVOR -> {
+            flavor.dimension = DISTRIBUTION_DIMENSION
+            flavor.buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
+            flavor.buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
+            flavor.buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
+            flavor.buildConfigField("boolean", "HAS_BILLING", "false")
+            flavor.buildConfigField("boolean", "HAS_CLOUD_BACKUP", "false")
+            flavor.buildConfigField("boolean", "HAS_MATRIX_E2EE", "true")
+            flavor.ndk { abiFilters.add("arm64-v8a") }
+        }
+        FDROID_FLAVOR -> {
+            flavor.dimension = DISTRIBUTION_DIMENSION
+            flavor.buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
+            flavor.buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "false")
+            flavor.buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
+            flavor.buildConfigField("boolean", "HAS_BILLING", "false")
+            flavor.buildConfigField("boolean", "HAS_CLOUD_BACKUP", "false")
+            flavor.buildConfigField("boolean", "HAS_MATRIX_E2EE", "false")
+        }
+    }
+}
+
+private fun configureRelayFlavor(flavor: DynamicFeatureProductFlavor) {
+    when (flavor.name) {
+        PLAY_FLAVOR,
+        GITHUB_NO_E2EE_FLAVOR,
+        GITHUB_WITH_E2EE_FLAVOR,
+        FDROID_FLAVOR,
+        -> flavor.dimension = DISTRIBUTION_DIMENSION
+    }
+}
+
+private fun isSupportedRelayVariant(productFlavors: Map<String, String>): Boolean {
+    return productFlavors[DISTRIBUTION_DIMENSION] != FDROID_FLAVOR
+}
+
+private fun isSupportedRelayDynamicFeatureVariant(productFlavors: Map<String, String>): Boolean {
+    return productFlavors[DISTRIBUTION_DIMENSION] == PLAY_FLAVOR
+}
+
+private fun ApplicationExtension.configureRelayFlavors() {
+    flavorDimensions.add(DISTRIBUTION_DIMENSION)
+    productFlavors {
+        maybeCreate(PLAY_FLAVOR).also(::configureRelayFlavor)
+        maybeCreate(GITHUB_NO_E2EE_FLAVOR).also(::configureRelayFlavor)
+        maybeCreate(GITHUB_WITH_E2EE_FLAVOR).also(::configureRelayFlavor)
+        maybeCreate(FDROID_FLAVOR).also(::configureRelayFlavor)
+    }
+}
+
+private fun LibraryExtension.configureRelayFlavors() {
+    flavorDimensions.add(DISTRIBUTION_DIMENSION)
+    productFlavors {
+        maybeCreate(PLAY_FLAVOR).also(::configureRelayFlavor)
+        maybeCreate(GITHUB_NO_E2EE_FLAVOR).also(::configureRelayFlavor)
+        maybeCreate(GITHUB_WITH_E2EE_FLAVOR).also(::configureRelayFlavor)
+        maybeCreate(FDROID_FLAVOR).also(::configureRelayFlavor)
+    }
+}
+
+private fun DynamicFeatureExtension.configureRelayFlavors() {
+    flavorDimensions.add(DISTRIBUTION_DIMENSION)
+    productFlavors {
+        maybeCreate(PLAY_FLAVOR).also(::configureRelayFlavor)
+        maybeCreate(GITHUB_NO_E2EE_FLAVOR).also(::configureRelayFlavor)
+        maybeCreate(GITHUB_WITH_E2EE_FLAVOR).also(::configureRelayFlavor)
+        maybeCreate(FDROID_FLAVOR).also(::configureRelayFlavor)
+    }
 }
 
 pluginManager.withPlugin("com.android.application") {
-    extensions.configure<CommonExtension> {
-        configureRelayAndroidCommon()
+    extensions.configure<ApplicationExtension> {
+        configureRelayFlavors()
     }
     extensions.getByType<ApplicationAndroidComponentsExtension>().beforeVariants(
         extensions.getByType<ApplicationAndroidComponentsExtension>().selector().all(),
     ) { variantBuilder ->
-        if (variantBuilder.productFlavors.toMap()["distribution"] == "fdroid") {
+        if (!isSupportedRelayVariant(variantBuilder.productFlavors.toMap())) {
             variantBuilder.enable = false
         }
     }
 }
 
 pluginManager.withPlugin("com.android.library") {
-    extensions.configure<CommonExtension> {
-        configureRelayAndroidCommon()
+    extensions.configure<LibraryExtension> {
+        configureRelayFlavors()
     }
     extensions.getByType<LibraryAndroidComponentsExtension>().beforeVariants(
         extensions.getByType<LibraryAndroidComponentsExtension>().selector().all(),
     ) { variantBuilder ->
-        if (variantBuilder.productFlavors.toMap()["distribution"] == "fdroid") {
+        if (!isSupportedRelayVariant(variantBuilder.productFlavors.toMap())) {
             variantBuilder.enable = false
         }
     }
 }
 
 pluginManager.withPlugin("com.android.dynamic-feature") {
-    extensions.configure<CommonExtension> {
-        configureRelayAndroidCommon()
+    extensions.configure<DynamicFeatureExtension> {
+        configureRelayFlavors()
     }
-}
-
-tasks.withType<Test>().configureEach {
-    useJUnitPlatform()
+    extensions.getByType<DynamicFeatureAndroidComponentsExtension>().beforeVariants(
+        extensions.getByType<DynamicFeatureAndroidComponentsExtension>().selector().all(),
+    ) { variantBuilder ->
+        if (!isSupportedRelayDynamicFeatureVariant(variantBuilder.productFlavors.toMap())) {
+            variantBuilder.enable = false
+        }
+    }
 }
