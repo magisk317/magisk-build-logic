@@ -51,3 +51,6 @@ For `magisk.app.packaging`, consumers can override the artifact base name:
 ```kotlin
 extra["artifactBaseName"] = "MiPushFramework"
 ```
+
+The legacy `mipushArtifactBaseName` key is still accepted for older MiPushFramework modules, but new
+consumers should use `artifactBaseName`.

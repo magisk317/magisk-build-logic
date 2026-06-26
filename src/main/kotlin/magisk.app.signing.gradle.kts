@@ -19,11 +19,17 @@ fun resolveSigningFile(
 val keyFile = resolveSigningFile(
     explicitPath = System.getenv("KEYSTORE_FILE")
         ?: project.findProperty("tianma.keystore.path")?.toString(),
-    fallbackPaths = listOf("release.jks", "app/release.jks", ".yuuta.jks"),
+    fallbackPaths = listOf("release.jks", "app/release.jks", ".yuuta.jks",
+        "${rootProject.projectDir}/release.jks",
+        "${rootProject.projectDir}/app/release.jks",
+        "${rootProject.projectDir}/.yuuta.jks"),
 )
 val propertyFile = resolveSigningFile(
     explicitPath = project.findProperty("tianma.signature.path")?.toString(),
-    fallbackPaths = listOf("signature.properties", "app/signature.properties", "local.properties"),
+    fallbackPaths = listOf("signature.properties", "app/signature.properties", "local.properties",
+        "${rootProject.projectDir}/signature.properties",
+        "${rootProject.projectDir}/app/signature.properties",
+        "${rootProject.projectDir}/local.properties"),
 )
 
 val keyProps = Properties().apply {

@@ -31,11 +31,13 @@ fun buildTimestamp(): String = buildTimestampOverride() ?: releaseTime()
 
 fun releaseBaseName(versionName: String): String {
     val configured = project.findProperty("artifactBaseName")
+        ?: project.findProperty("mipushArtifactBaseName")
+    val baseName = configured
         ?.toString()
         ?.trim()
         ?.takeIf { it.isNotEmpty() }
         ?: rootProject.name
-    val base = configured.replace("\\s+".toRegex(), "_")
+    val base = baseName.replace("\\s+".toRegex(), "_")
     val normalizedVersionName = versionName.replace("\\s+".toRegex(), "_")
     return "${base}_v$normalizedVersionName"
 }
