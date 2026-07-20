@@ -1,4 +1,5 @@
 import com.android.build.api.dsl.ApplicationExtension
+import org.gradle.api.GradleException
 import org.gradle.kotlin.dsl.configure
 import java.util.Properties
 
@@ -52,11 +53,18 @@ val allowIncompatibleDebugSigning = project.findProperty("allowIncompatibleDebug
 pluginManager.withPlugin("com.android.application") {
     val requestedTasks = gradle.startParameter.taskNames.map { it.lowercase() }
     val requiresReleaseCompatibleSigning = requestedTasks.any { taskName ->
-        taskName.contains("debug") || taskName.contains("alpha")
+        val taskLeafName = taskName.substringAfterLast(":")
+        val createsRunnableArtifact = taskLeafName.startsWith("assemble") ||
+            taskLeafName.startsWith("bundle") ||
+            taskLeafName.startsWith("install")
+        createsRunnableArtifact && (taskLeafName.contains("debug") || taskLeafName.contains("alpha"))
     }
     if (requiresReleaseCompatibleSigning && !isSigningInfoAvailable && !allowIncompatibleDebugSigning) {
-        // Warning instead of error to avoid breaking some local builds
-        println("Warning: Debug/alpha builds should ideally use release-compatible signing.")
+        throw GradleException(
+            "Debug/alpha artifact tasks require release-compatible signing. " +
+                "Configure KEYSTORE_FILE, STORE_PASSWORD, KEY_ALIAS, and KEY_PASSWORD, " +
+                "or pass -PallowIncompatibleDebugSigning=true for local-only builds."
+        )
     }
 
     extensions.configure<ApplicationExtension> {
@@ -82,6 +90,8 @@ pluginManager.withPlugin("com.android.application") {
                 signingConfig = if (isSigningInfoAvailable) releaseSigningConfig else debugSigningConfig
             }
             maybeCreate("alpha").apply {
+                initWith(getByName("release"))
+                matchingFallbacks += "release"
                 if (isSigningInfoAvailable) {
                     signingConfig = releaseSigningConfig
                 }

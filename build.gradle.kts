@@ -1,3 +1,4 @@
+import org.gradle.api.tasks.testing.Test
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -16,6 +17,7 @@ val agpVersion = catalogVersion("agp")
 val kotlinVersion = catalogVersion("kotlin")
 val kspVersion = catalogVersion("ksp")
 val buildLogicBytecodeVersion = catalogVersion("javaBytecode")
+val junitVersion = "6.1.1"
 
 java {
     sourceCompatibility = JavaVersion.toVersion(buildLogicBytecodeVersion)
@@ -58,4 +60,12 @@ dependencies {
     implementation("org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlinVersion")
     implementation("org.jetbrains.kotlin:compose-compiler-gradle-plugin:$kotlinVersion")
     implementation("com.google.devtools.ksp:symbol-processing-gradle-plugin:$kspVersion")
+
+    testImplementation(gradleTestKit())
+    testImplementation("org.junit.jupiter:junit-jupiter:$junitVersion")
+    testRuntimeOnly("org.junit.platform:junit-platform-launcher:$junitVersion")
+}
+
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
 }

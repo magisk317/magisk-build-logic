@@ -1,0 +1,10 @@
+# Shared Gradle defaults for Magisk317 Android consumers.
+org.gradle.jvmargs=-Xmx4096m -XX:MaxMetaspaceSize=2048m -XX:+HeapDumpOnOutOfMemoryError --enable-native-access=ALL-UNNAMED -Djava.awt.headless=true
+org.gradle.parallel=true
+org.gradle.caching=true
+org.gradle.configuration-cache=true
+org.gradle.configuration-cache.problems=warn
+org.gradle.warning.mode=all
+android.useAndroidX=true
+android.suppressUnsupportedCompileSdk=37,37.0
+kotlin.jvm.target.validation.mode=IGNORE

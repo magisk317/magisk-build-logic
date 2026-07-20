@@ -22,16 +22,30 @@ fun releaseTime(): String = SimpleDateFormat("yyyyMMdd_HHmmss").apply {
     timeZone = TimeZone.getDefault()
 }.format(Date())
 
-fun buildTimestampOverride(): String? = project.findProperty("buildTs")
-    ?.toString()
-    ?.trim()
-    ?.takeIf { it.isNotEmpty() }
+fun buildTimestampOverride(): String? = sequenceOf(
+    project.findProperty("buildTs")?.toString(),
+    System.getenv("MAGISK_BUILD_TIMESTAMP"),
+).mapNotNull { it?.trim()?.takeIf(String::isNotEmpty) }.firstOrNull()
 
-fun buildTimestamp(): String = buildTimestampOverride() ?: releaseTime()
+/**
+ * Normalize the build timestamp into yyyyMMdd_HHmmss so artifact names stay
+ * consistent whether callers use Gradle's buildTs property or the CI environment.
+ * Unrecognized values fall back to the live clock instead of being embedded raw.
+ */
+fun normalizeBuildTimestamp(raw: String): String? {
+    val compact = raw.filter { it.isDigit() }
+    if (compact.length != 14) return null
+    val date = compact.substring(0, 8)
+    val time = compact.substring(8, 14)
+    if (!date.all(Char::isDigit) || !time.all(Char::isDigit)) return null
+    return "${date}_${time}"
+}
+
+fun buildTimestamp(): String =
+    buildTimestampOverride()?.let { normalizeBuildTimestamp(it) } ?: releaseTime()
 
 fun releaseBaseName(versionName: String): String {
     val configured = project.findProperty("artifactBaseName")
-        ?: project.findProperty("mipushArtifactBaseName")
     val baseName = configured
         ?.toString()
         ?.trim()

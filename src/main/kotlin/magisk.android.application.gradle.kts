@@ -14,16 +14,13 @@ extensions.configure<ApplicationExtension> {
 
     buildTypes {
         debug {
-            val minifyDebug = providers.gradleProperty("minifyDebug")
-                .map { value ->
-                    value.isBlank() || value.equals("true", ignoreCase = true) || value == "1"
-                }
-                .orElse(false)
-                .get()
-            isMinifyEnabled = minifyDebug
-            isShrinkResources = minifyDebug
-            isDebuggable = true
-            if (minifyDebug) {
+            val optimization = debugOptimization(
+                providers.gradleProperty("minifyDebug").orNull,
+            )
+            isMinifyEnabled = optimization.isMinifyEnabled
+            isShrinkResources = optimization.isShrinkResources
+            isDebuggable = optimization.isDebuggable
+            if (optimization.isMinifyEnabled) {
                 proguardFiles(
                     getDefaultProguardFile("proguard-android-optimize.txt"),
                     "proguard-rules.pro",
