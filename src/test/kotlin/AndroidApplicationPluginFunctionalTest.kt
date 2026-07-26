@@ -66,6 +66,14 @@ class AndroidApplicationPluginFunctionalTest {
                         "debuggable=${'$'}{alpha.debuggable}")
                 }
             }
+
+            tasks.register('printReleasePolicy') {
+                doLast {
+                    def release = android.buildTypes.getByName('release')
+                    println("RELEASE_POLICY minify=${'$'}{release.minifyEnabled} " +
+                        "shrink=${'$'}{release.shrinkResources}")
+                }
+            }
             """.trimIndent(),
         )
         projectDir.resolve("src/main/AndroidManifest.xml").write(
@@ -92,6 +100,17 @@ class AndroidApplicationPluginFunctionalTest {
         assertTrue(
             result.output.contains(
                 "ALPHA_POLICY fallbacks=[release] debuggable=false",
+            ),
+        )
+    }
+
+    @Test
+    fun `release enables code and resource shrinking`() {
+        val result = runner("printReleasePolicy").build()
+
+        assertTrue(
+            result.output.contains(
+                "RELEASE_POLICY minify=true shrink=true",
             ),
         )
     }

@@ -10,7 +10,13 @@ plugins {
 
 extensions.configure<LibraryExtension> {
     defaultConfig {
-        minSdk = project.catalogInt("minSdk")
+        when (val spec = parseAndroidSdkSpec(project.catalogVersion("minSdk"))) {
+            is AndroidSdkSpec.ApiLevel -> minSdk = spec.value
+            is AndroidSdkSpec.Preview -> {
+                @Suppress("DEPRECATION")
+                minSdkPreview = spec.codename
+            }
+        }
     }
 
     buildTypes {

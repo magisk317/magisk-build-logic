@@ -7,9 +7,21 @@ plugins {
 }
 
 extensions.configure<ApplicationExtension> {
+    val projectProguardFile = sequenceOf("proguard-rules.pro", "proguard-common.pro")
+        .firstOrNull { project.file(it).isFile }
+
     defaultConfig {
-        minSdk = project.catalogInt("minSdk")
-        targetSdk = project.catalogInt("targetSdk")
+        when (val spec = parseAndroidSdkSpec(project.catalogVersion("minSdk"))) {
+            is AndroidSdkSpec.ApiLevel -> minSdk = spec.value
+            is AndroidSdkSpec.Preview -> {
+                @Suppress("DEPRECATION")
+                minSdkPreview = spec.codename
+            }
+        }
+        when (val spec = parseAndroidSdkSpec(project.catalogVersion("targetSdk"))) {
+            is AndroidSdkSpec.ApiLevel -> targetSdk = spec.value
+            is AndroidSdkSpec.Preview -> targetSdkPreview = spec.codename
+        }
     }
 
     buildTypes {
@@ -21,15 +33,15 @@ extensions.configure<ApplicationExtension> {
             isShrinkResources = optimization.isShrinkResources
             isDebuggable = optimization.isDebuggable
             if (optimization.isMinifyEnabled) {
-                proguardFiles(
-                    getDefaultProguardFile("proguard-android-optimize.txt"),
-                    "proguard-rules.pro",
-                )
+                proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+                projectProguardFile?.let(::proguardFile)
             }
         }
         release {
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
+            projectProguardFile?.let(::proguardFile)
         }
     }
 
