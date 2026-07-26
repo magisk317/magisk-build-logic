@@ -1,3 +1,22 @@
+import org.gradle.api.tasks.testing.Test
+import org.gradle.api.tasks.testing.logging.TestExceptionFormat
+import org.gradle.api.tasks.testing.logging.TestLogEvent
+
+fun Test.configureConsistentTestLogging() {
+    testLogging {
+        events(
+            TestLogEvent.PASSED,
+            TestLogEvent.SKIPPED,
+            TestLogEvent.FAILED,
+        )
+        exceptionFormat = TestExceptionFormat.FULL
+        showExceptions = true
+        showCauses = true
+        showStackTraces = true
+        showStandardStreams = false
+    }
+}
+
 val cleanupTask = tasks.register("cleanupGradleCaches") {
     group = "maintenance"
     description = "Remove stale Gradle version caches under .gradle directories."
@@ -47,6 +66,9 @@ val cleanupTask = tasks.register("cleanupGradleCaches") {
 // Automatically hook to all projects' assemble tasks and the root build task
 if (project == rootProject) {
     allprojects {
+        tasks.withType<Test>().configureEach {
+            configureConsistentTestLogging()
+        }
         tasks.matching { it.name.startsWith("assemble") || it.name == "build" }.all {
             finalizedBy(cleanupTask)
         }
