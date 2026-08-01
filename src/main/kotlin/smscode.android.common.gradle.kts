@@ -1,7 +1,6 @@
 import com.android.build.api.dsl.ApplicationExtension
-import com.android.build.api.dsl.ApplicationProductFlavor
 import com.android.build.api.dsl.LibraryExtension
-import com.android.build.api.dsl.LibraryProductFlavor
+import com.android.build.api.dsl.ProductFlavor
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import org.gradle.kotlin.dsl.configure
@@ -11,33 +10,7 @@ plugins {
     id("magisk.android.common")
 }
 
-private fun configureSmscodeFlavor(flavor: ApplicationProductFlavor) {
-    when (flavor.name) {
-        "play" -> {
-            flavor.dimension = "distribution"
-            flavor.buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "false")
-            flavor.buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
-            flavor.buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "false")
-            flavor.buildConfigField("boolean", "HAS_BILLING", "true")
-        }
-        "github" -> {
-            flavor.dimension = "distribution"
-            flavor.buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
-            flavor.buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
-            flavor.buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
-            flavor.buildConfigField("boolean", "HAS_BILLING", "false")
-        }
-        "fdroid" -> {
-            flavor.dimension = "distribution"
-            flavor.buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
-            flavor.buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "false")
-            flavor.buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
-            flavor.buildConfigField("boolean", "HAS_BILLING", "false")
-        }
-    }
-}
-
-private fun configureSmscodeFlavor(flavor: LibraryProductFlavor) {
+private fun configureSmscodeFlavor(flavor: ProductFlavor) {
     when (flavor.name) {
         "play" -> {
             flavor.dimension = "distribution"

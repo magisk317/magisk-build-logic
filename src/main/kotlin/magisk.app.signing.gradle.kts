@@ -43,37 +43,20 @@ val storePasswordVal = System.getenv("STORE_PASSWORD") ?: System.getenv("KEYSTOR
 val keyAliasVal = System.getenv("KEY_ALIAS") ?: System.getenv("ALIAS_NAME") ?: keyProps.getProperty("KEY_ALIAS") ?: keyProps.getProperty("KEYSTORE_ALIAS")
 val keyPasswordVal = System.getenv("KEY_PASSWORD") ?: System.getenv("ALIAS_PASS") ?: keyProps.getProperty("KEY_PASSWORD")
 
-val isSigningInfoAvailable = keyFile.exists() && (storePasswordVal != null)
-
-val allowIncompatibleDebugSigning = project.findProperty("allowIncompatibleDebugSigning")
-    ?.toString()
-    ?.toBooleanStrictOrNull()
-    ?: false
+val isSigningInfoAvailable = keyFile.isFile &&
+    !storePasswordVal.isNullOrBlank() &&
+    !keyAliasVal.isNullOrBlank() &&
+    !keyPasswordVal.isNullOrBlank()
 
 pluginManager.withPlugin("com.android.application") {
-    val requestedTasks = gradle.startParameter.taskNames.map { it.lowercase() }
-    val requiresReleaseCompatibleSigning = requestedTasks.any { taskName ->
-        val taskLeafName = taskName.substringAfterLast(":")
-        val createsRunnableArtifact = taskLeafName.startsWith("assemble") ||
-            taskLeafName.startsWith("bundle") ||
-            taskLeafName.startsWith("install")
-        createsRunnableArtifact && (taskLeafName.contains("debug") || taskLeafName.contains("alpha"))
-    }
-    if (requiresReleaseCompatibleSigning && !isSigningInfoAvailable && !allowIncompatibleDebugSigning) {
+    if (requiresReleaseSigning(gradle.startParameter.taskNames, project.path) && !isSigningInfoAvailable) {
         throw GradleException(
-            "Debug/alpha artifact tasks require release-compatible signing. " +
-                "Configure KEYSTORE_FILE, STORE_PASSWORD, KEY_ALIAS, and KEY_PASSWORD, " +
-                "or pass -PallowIncompatibleDebugSigning=true for local-only builds."
+            "APK/AAB packaging requires complete release signing. " +
+                "Configure KEYSTORE_FILE, STORE_PASSWORD, KEY_ALIAS, and KEY_PASSWORD."
         )
     }
 
     extensions.configure<ApplicationExtension> {
-        val debugSigningConfig = signingConfigs.maybeCreate("debug").apply {
-            enableV1Signing = true
-            enableV2Signing = true
-            enableV3Signing = true
-            enableV4Signing = true
-        }
         val releaseSigningConfig = signingConfigs.maybeCreate("release").apply {
             storeFile = keyFile
             storePassword = storePasswordVal
@@ -87,17 +70,15 @@ pluginManager.withPlugin("com.android.application") {
 
         buildTypes {
             getByName("debug") {
-                signingConfig = if (isSigningInfoAvailable) releaseSigningConfig else debugSigningConfig
+                signingConfig = releaseSigningConfig
             }
             maybeCreate("alpha").apply {
                 initWith(getByName("release"))
                 matchingFallbacks += "release"
-                if (isSigningInfoAvailable) {
-                    signingConfig = releaseSigningConfig
-                }
+                signingConfig = releaseSigningConfig
             }
             getByName("release") {
-                signingConfig = if (isSigningInfoAvailable) releaseSigningConfig else debugSigningConfig
+                signingConfig = releaseSigningConfig
             }
         }
     }

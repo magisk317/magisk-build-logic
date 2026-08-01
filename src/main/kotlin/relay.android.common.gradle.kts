@@ -1,9 +1,8 @@
 import com.android.build.api.dsl.ApplicationExtension
-import com.android.build.api.dsl.ApplicationProductFlavor
 import com.android.build.api.dsl.DynamicFeatureExtension
 import com.android.build.api.dsl.DynamicFeatureProductFlavor
 import com.android.build.api.dsl.LibraryExtension
-import com.android.build.api.dsl.LibraryProductFlavor
+import com.android.build.api.dsl.ProductFlavor
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.DynamicFeatureAndroidComponentsExtension
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
@@ -20,51 +19,7 @@ val GITHUB_NO_E2EE_FLAVOR = "githubNoE2ee"
 val GITHUB_WITH_E2EE_FLAVOR = "githubWithE2ee"
 val FDROID_FLAVOR = "fdroid"
 
-private fun configureRelayFlavor(flavor: ApplicationProductFlavor) {
-    when (flavor.name) {
-        PLAY_FLAVOR -> {
-            flavor.dimension = DISTRIBUTION_DIMENSION
-            flavor.buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "false")
-            flavor.buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
-            flavor.buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "false")
-            flavor.buildConfigField("boolean", "HAS_BILLING", "true")
-            flavor.buildConfigField("boolean", "HAS_CLOUD_BACKUP", "true")
-            flavor.buildConfigField("boolean", "HAS_MATRIX_E2EE", "true")
-        }
-        GITHUB_NO_E2EE_FLAVOR -> {
-            flavor.dimension = DISTRIBUTION_DIMENSION
-            flavor.buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
-            flavor.buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
-            flavor.buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
-            flavor.buildConfigField("boolean", "HAS_BILLING", "false")
-            flavor.buildConfigField("boolean", "HAS_CLOUD_BACKUP", "false")
-            flavor.buildConfigField("boolean", "HAS_MATRIX_E2EE", "false")
-        }
-        GITHUB_WITH_E2EE_FLAVOR -> {
-            flavor.dimension = DISTRIBUTION_DIMENSION
-            flavor.buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
-            flavor.buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "true")
-            flavor.buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
-            flavor.buildConfigField("boolean", "HAS_BILLING", "false")
-            flavor.buildConfigField("boolean", "HAS_CLOUD_BACKUP", "false")
-            flavor.buildConfigField("boolean", "HAS_MATRIX_E2EE", "true")
-            // Only ship arm64-v8a native libs to keep APK size reasonable
-            // (matrix-rust-sdk .so is ~60 MB per ABI)
-            flavor.ndk { abiFilters.add("arm64-v8a") }
-        }
-        FDROID_FLAVOR -> {
-            flavor.dimension = DISTRIBUTION_DIMENSION
-            flavor.buildConfigField("boolean", "ENABLE_SMS_CHANNEL", "true")
-            flavor.buildConfigField("boolean", "ALLOW_HTTP_WEBHOOK", "false")
-            flavor.buildConfigField("boolean", "ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
-            flavor.buildConfigField("boolean", "HAS_BILLING", "false")
-            flavor.buildConfigField("boolean", "HAS_CLOUD_BACKUP", "false")
-            flavor.buildConfigField("boolean", "HAS_MATRIX_E2EE", "false")
-        }
-    }
-}
-
-private fun configureRelayFlavor(flavor: LibraryProductFlavor) {
+private fun configureRelayFlavor(flavor: ProductFlavor) {
     when (flavor.name) {
         PLAY_FLAVOR -> {
             flavor.dimension = DISTRIBUTION_DIMENSION

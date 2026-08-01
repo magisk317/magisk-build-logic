@@ -16,7 +16,11 @@ fun versionStringOrNull(name: String): String? {
 }
 
 val versionNameStr = versionStringOrNull("versionName") ?: rootProject.version.toString()
-val versionCodeStr = versionStringOrNull("versionCode") ?: "1"
+fun artifactBaseName(): String = sequenceOf(
+    project.findProperty("artifactBaseName")?.toString(),
+    project.extensions.extraProperties.properties["artifactBaseName"]?.toString(),
+    rootProject.name,
+).mapNotNull { it?.trim()?.takeIf(String::isNotEmpty) }.first()
 
 fun releaseTime(): String = SimpleDateFormat("yyyyMMdd_HHmmss").apply {
     timeZone = TimeZone.getDefault()
@@ -44,45 +48,15 @@ fun normalizeBuildTimestamp(raw: String): String? {
 fun buildTimestamp(): String =
     buildTimestampOverride()?.let { normalizeBuildTimestamp(it) } ?: releaseTime()
 
-fun releaseBaseName(versionName: String): String {
-    val configured = project.findProperty("artifactBaseName")
-    val baseName = configured
-        ?.toString()
-        ?.trim()
-        ?.takeIf { it.isNotEmpty() }
-        ?: rootProject.name
-    val base = baseName.replace("\\s+".toRegex(), "_")
-    val normalizedVersionName = versionName.replace("\\s+".toRegex(), "_")
-    return "${base}_v$normalizedVersionName"
-}
-
-fun releaseApkName(versionName: String, buildType: String, abiSuffix: String, flavorName: String = ""): String {
-    val base = releaseBaseName(versionName)
-    val flavorTag = if (flavorName.isNotEmpty()) "${flavorName}_" else ""
-    return "${abiSuffix}_${flavorTag}${base}_${buildType}.apk"
-}
-
-fun releaseAabName(versionName: String): String = "${releaseBaseName(versionName)}_release.aab"
-
-fun registerTaskAlias(aliasName: String, targetName: String, descriptionText: String) {
-    if (tasks.names.contains(aliasName)) {
-        return
-    }
-    tasks.register(aliasName) {
-        group = "build"
-        description = descriptionText
-        dependsOn(targetName)
-    }
-}
-
 val debugBuildTimestamp = buildTimestamp()
-val isBundleTask = gradle.startParameter.taskNames.any { it.contains("bundle", ignoreCase = true) }
+val includesBundleRequest = requestsApplicationBundle(gradle.startParameter.taskNames, project.path)
+val isBundleOnlyInvocation = requestsOnlyApplicationBundles(gradle.startParameter.taskNames, project.path)
 
 pluginManager.withPlugin("com.android.application") {
     extensions.configure<ApplicationExtension> {
         splits {
             abi {
-                isEnable = project.hasProperty("buildSplits") && !isBundleTask
+                isEnable = project.hasProperty("buildSplits") && !includesBundleRequest
                 reset()
                 include("armeabi-v7a", "arm64-v8a", "x86", "x86_64")
                 isUniversalApk = true
@@ -137,7 +111,7 @@ pluginManager.withPlugin("com.android.application") {
                 }
             }
 
-            if (isBundleTask && distribution != "play" && distribution != null) {
+            if (isBundleOnlyInvocation && distribution != "play" && distribution != null) {
                 variantBuilder.enable = false
             }
         }
@@ -156,37 +130,26 @@ pluginManager.withPlugin("com.android.application") {
                     it.filterType == FilterConfiguration.FilterType.ABI
                 }?.identifier ?: "universal"
 
-                try {
-                    val outputFileName = output.javaClass.getMethod("getOutputFileName").invoke(output)
-                    outputFileName.javaClass
-                        .getMethod("set", Any::class.java)
-                        .invoke(outputFileName, releaseApkName(resolvedVersionName, variant.buildType ?: "", abi, variant.flavorName ?: ""))
-                } catch (_: Exception) {
-                    // Ignore
+                // E2EE embeds a native Matrix runtime that is published only for arm64.
+                // AGP still creates every requested split, so drop the unusable ABI outputs
+                // instead of publishing tiny APKs without the native runtime.
+                if (variant.flavorName?.contains("WithE2ee", ignoreCase = true) == true &&
+                    abi != "arm64-v8a" &&
+                    abi != "universal"
+                ) {
+                    output.enabled.set(false)
                 }
+
+                output.outputFileName.set(
+                    releaseApkName(
+                        artifactBaseName = artifactBaseName(),
+                        versionName = resolvedVersionName,
+                        buildType = variant.buildType ?: "",
+                        abiSuffix = abi,
+                        flavorName = variant.flavorName ?: "",
+                    ),
+                )
             }
         }
-    }
-
-    tasks.register("renameReleaseAab") {
-        dependsOn("bundleRelease", "bundlePlayRelease")
-        val bundleFileProvider = layout.buildDirectory.file("outputs/bundle/release/app-release.aab")
-        val playBundleFileProvider = layout.buildDirectory.file("outputs/bundle/playRelease/app-play-release.aab")
-        val targetFileProvider = layout.buildDirectory.file("outputs/bundle/release/${releaseAabName(versionNameStr)}")
-        doLast {
-            val bundleFile = bundleFileProvider.get().asFile
-            val playBundleFile = playBundleFileProvider.get().asFile
-            val target = targetFileProvider.get().asFile
-            
-            if (playBundleFile.exists()) {
-                playBundleFile.copyTo(target, overwrite = true)
-            } else if (bundleFile.exists()) {
-                bundleFile.copyTo(target, overwrite = true)
-            }
-        }
-    }
-
-    tasks.matching { it.name == "bundlePlayRelease" || it.name == "bundleRelease" }.configureEach {
-        finalizedBy("renameReleaseAab")
     }
 }

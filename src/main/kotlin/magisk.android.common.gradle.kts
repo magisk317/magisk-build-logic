@@ -3,6 +3,7 @@ import com.android.build.api.dsl.CommonExtension
 import com.android.build.api.dsl.DynamicFeatureExtension
 import com.android.build.api.dsl.LibraryExtension
 import org.gradle.api.JavaVersion
+import org.gradle.api.tasks.testing.Test
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.withType
 import org.jetbrains.kotlin.gradle.tasks.KotlinJvmCompile
@@ -22,6 +23,10 @@ fun CommonExtension.configureMagiskAndroidCommon() {
 
 tasks.withType<KotlinJvmCompile>().configureEach {
     compilerOptions.jvmTarget.set(project.magiskKotlinJvmTarget())
+}
+
+tasks.withType<Test>().configureEach {
+    useJUnitPlatform()
 }
 
 pluginManager.withPlugin("com.android.application") {

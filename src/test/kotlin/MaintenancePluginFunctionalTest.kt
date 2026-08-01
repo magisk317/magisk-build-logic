@@ -1,6 +1,8 @@
 import java.nio.file.Files
 import java.nio.file.Path
 import org.gradle.testkit.runner.GradleRunner
+import org.gradle.util.GradleVersion
+import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.io.TempDir
@@ -49,6 +51,35 @@ class MaintenancePluginFunctionalTest {
         assertTrue(result.output.contains("TEST_EVENTS [PASSED, SKIPPED, FAILED]"), result.output)
         assertTrue(result.output.contains("TEST_EXCEPTION_FORMAT FULL"), result.output)
     }
+
+    @Test
+    fun `cache cleanup is explicit and removes every stale Gradle version`() {
+        projectDir.resolve("settings.gradle.kts").write("rootProject.name = \"maintenance-test\"")
+        projectDir.resolve("build.gradle").write(
+            """
+            plugins {
+                id 'base'
+                id 'magisk.maintenance'
+            }
+            """.trimIndent(),
+        )
+        val staleCache = projectDir.resolve(".gradle/1.0")
+        val currentCache = projectDir.resolve(".gradle/${GradleVersion.current().version}")
+        Files.createDirectories(staleCache)
+        Files.createDirectories(currentCache)
+
+        runner("assemble").build()
+
+        assertTrue(Files.isDirectory(staleCache))
+        runner("cleanupGradleCaches").build()
+        assertFalse(Files.exists(staleCache))
+        assertTrue(Files.isDirectory(currentCache))
+    }
+
+    private fun runner(vararg arguments: String): GradleRunner = GradleRunner.create()
+        .withProjectDir(projectDir.toFile())
+        .withPluginClasspath()
+        .withArguments(*arguments, "--stacktrace")
 
     private fun Path.write(content: String) {
         parent?.let(Files::createDirectories)

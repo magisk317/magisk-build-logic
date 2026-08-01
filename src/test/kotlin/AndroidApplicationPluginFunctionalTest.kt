@@ -29,6 +29,7 @@ class AndroidApplicationPluginFunctionalTest {
                 }
             }
             rootProject.name = "debug-policy-test"
+            include("library")
             """.trimIndent(),
         )
         projectDir.resolve("gradle/libs.versions.toml").write(
@@ -74,12 +75,36 @@ class AndroidApplicationPluginFunctionalTest {
                         "shrink=${'$'}{release.shrinkResources}")
                 }
             }
+
+            tasks.register('printSigningPolicy') {
+                doLast {
+                    def debug = android.buildTypes.getByName('debug')
+                    def alpha = android.buildTypes.getByName('alpha')
+                    def release = android.buildTypes.getByName('release')
+                    println("SIGNING_POLICY debug=${'$'}{debug.signingConfig.name} " +
+                        "alpha=${'$'}{alpha.signingConfig.name} " +
+                        "release=${'$'}{release.signingConfig.name}")
+                }
+            }
             """.trimIndent(),
         )
         projectDir.resolve("src/main/AndroidManifest.xml").write(
             "<manifest />",
         )
         projectDir.resolve("proguard-rules.pro").write("")
+        projectDir.resolve("library/build.gradle").write(
+            """
+            plugins {
+                id 'magisk.android.library'
+            }
+
+            android {
+                namespace = 'io.github.magisk317.debugpolicytest.library'
+            }
+            """.trimIndent(),
+        )
+        projectDir.resolve("library/src/main/AndroidManifest.xml").write("<manifest />")
+        createSigningConfig()
     }
 
     @Test
@@ -116,12 +141,22 @@ class AndroidApplicationPluginFunctionalTest {
     }
 
     @Test
+    fun `all build types use release signing`() {
+        val result = runner("printSigningPolicy").build()
+
+        assertTrue(
+            result.output.contains(
+                "SIGNING_POLICY debug=release alpha=release release=release",
+            ),
+        )
+    }
+
+    @Test
     fun `minified debug is shrunk and non-debuggable without AGP warning`() {
         val result = runner(
             "assembleDebug",
             "printDebugPolicy",
             "-PminifyDebug=true",
-            "-PallowIncompatibleDebugSigning=true",
             "--warning-mode=all",
         ).build()
 
@@ -134,11 +169,76 @@ class AndroidApplicationPluginFunctionalTest {
         assertTrue(Files.isRegularFile(projectDir.resolve("build/outputs/apk/debug/debug-policy-test-debug.apk")))
     }
 
+    @Test
+    fun `debug packaging refuses missing release signing`() {
+        deleteSigningConfig()
+
+        val result = runner("assembleDebug").buildAndFail()
+
+        assertTrue(result.output.contains("APK/AAB packaging requires complete release signing"))
+    }
+
+    @Test
+    fun `release packaging refuses missing release signing`() {
+        deleteSigningConfig()
+
+        val result = runner("assembleRelease").buildAndFail()
+
+        assertTrue(result.output.contains("APK/AAB packaging requires complete release signing"))
+    }
+
+    @Test
+    fun `library packaging does not require application signing`() {
+        deleteSigningConfig()
+
+        val result = runner(":library:assembleDebug").build()
+
+        assertTrue(result.output.contains("BUILD SUCCESSFUL"))
+    }
+
     private fun runner(vararg arguments: String): GradleRunner = GradleRunner.create()
         .withProjectDir(projectDir.toFile())
         .withPluginClasspath()
         .withArguments(*arguments, "--stacktrace")
         .forwardOutput()
+
+    private fun createSigningConfig() {
+        val keytool = Path.of(
+            System.getProperty("java.home"),
+            "bin",
+            if (System.getProperty("os.name").startsWith("Windows")) "keytool.exe" else "keytool",
+        )
+        val process = ProcessBuilder(
+            keytool.toString(),
+            "-genkeypair",
+            "-alias", "test",
+            "-keyalg", "RSA",
+            "-keysize", "2048",
+            "-validity", "3650",
+            "-dname", "CN=Signing Policy Test",
+            "-keystore", projectDir.resolve("release.jks").toString(),
+            "-storetype", "PKCS12",
+            "-storepass", "changeit",
+            "-keypass", "changeit",
+            "-noprompt",
+        )
+            .redirectErrorStream(true)
+            .start()
+        val output = process.inputStream.bufferedReader().use { it.readText() }
+        check(process.waitFor() == 0) { "Failed to create test keystore: $output" }
+        projectDir.resolve("signature.properties").write(
+            """
+            STORE_PASSWORD=changeit
+            KEY_ALIAS=test
+            KEY_PASSWORD=changeit
+            """.trimIndent(),
+        )
+    }
+
+    private fun deleteSigningConfig() {
+        Files.deleteIfExists(projectDir.resolve("release.jks"))
+        Files.deleteIfExists(projectDir.resolve("signature.properties"))
+    }
 
     private fun Path.write(content: String) {
         parent?.let(Files::createDirectories)
