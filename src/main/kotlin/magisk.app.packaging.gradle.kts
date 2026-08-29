@@ -99,18 +99,6 @@ pluginManager.withPlugin("com.android.application") {
         beforeVariants(selector().all()) { variantBuilder ->
             val flavors = variantBuilder.productFlavors.toMap()
             val distribution = flavors["distribution"]
-            if (distribution != null) {
-                val distributionEnabled = when (distribution) {
-                    "play", "github", "githubNoE2ee", "githubWithE2ee" -> true
-                    "fdroid" -> false
-                    else -> false
-                }
-                if (!distributionEnabled) {
-                    variantBuilder.enable = false
-                    return@beforeVariants
-                }
-            }
-
             if (isBundleOnlyInvocation && distribution != "play" && distribution != null) {
                 variantBuilder.enable = false
             }
@@ -129,16 +117,6 @@ pluginManager.withPlugin("com.android.application") {
                 val abi = output.filters.find {
                     it.filterType == FilterConfiguration.FilterType.ABI
                 }?.identifier ?: "universal"
-
-                // E2EE embeds a native Matrix runtime that is published only for arm64.
-                // AGP still creates every requested split, so drop the unusable ABI outputs
-                // instead of publishing tiny APKs without the native runtime.
-                if (variant.flavorName?.contains("WithE2ee", ignoreCase = true) == true &&
-                    abi != "arm64-v8a" &&
-                    abi != "universal"
-                ) {
-                    output.enabled.set(false)
-                }
 
                 output.outputFileName.set(
                     releaseApkName(

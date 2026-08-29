@@ -2,7 +2,20 @@ import org.gradle.api.tasks.testing.Test
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
-fun Test.configureConsistentTestLogging() {
+fun Test.configureMagiskTestRuntime() {
+    useJUnitPlatform()
+    maxHeapSize = "2g"
+    forkEvery = 50
+    jvmArgs(
+        "-Xshare:off",
+        "-XX:+TieredCompilation",
+        "-XX:TieredStopAtLevel=1",
+        "--enable-native-access=ALL-UNNAMED",
+        "-XX:+EnableDynamicAgentLoading",
+    )
+    if (Runtime.version().feature() >= 24) {
+        jvmArgs("--sun-misc-unsafe-memory-access=allow")
+    }
     testLogging {
         events(
             TestLogEvent.PASSED,
@@ -51,7 +64,7 @@ tasks.register("cleanupGradleCaches") {
 if (project == rootProject) {
     allprojects {
         tasks.withType<Test>().configureEach {
-            configureConsistentTestLogging()
+            configureMagiskTestRuntime()
         }
     }
 }

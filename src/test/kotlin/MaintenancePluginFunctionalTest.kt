@@ -30,6 +30,10 @@ class MaintenancePluginFunctionalTest {
                     def logging = project(':sample').tasks.named('test').get().testLogging
                     println("TEST_EVENTS ${'$'}{logging.events.toList().sort()}")
                     println("TEST_EXCEPTION_FORMAT ${'$'}{logging.exceptionFormat}")
+                    def test = project(':sample').tasks.named('test').get()
+                    println("TEST_HEAP ${'$'}{test.maxHeapSize}")
+                    println("TEST_FORK_EVERY ${'$'}{test.forkEvery}")
+                    println("TEST_JVM_ARGS ${'$'}{test.jvmArgs}")
                 }
             }
             """.trimIndent(),
@@ -50,6 +54,9 @@ class MaintenancePluginFunctionalTest {
 
         assertTrue(result.output.contains("TEST_EVENTS [PASSED, SKIPPED, FAILED]"), result.output)
         assertTrue(result.output.contains("TEST_EXCEPTION_FORMAT FULL"), result.output)
+        assertTrue(result.output.contains("TEST_HEAP 2g"), result.output)
+        assertTrue(result.output.contains("TEST_FORK_EVERY 50"), result.output)
+        assertTrue(result.output.contains("-XX:+EnableDynamicAgentLoading"), result.output)
     }
 
     @Test

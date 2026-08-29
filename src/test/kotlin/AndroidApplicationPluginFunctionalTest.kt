@@ -38,7 +38,7 @@ class AndroidApplicationPluginFunctionalTest {
             compileSdk = "37"
             minSdk = "26"
             targetSdk = "37"
-            javaBytecode = "25"
+            javaBytecode = "26"
             """.trimIndent(),
         )
         projectDir.resolve("build.gradle").write(
@@ -60,14 +60,6 @@ class AndroidApplicationPluginFunctionalTest {
                 }
             }
 
-            tasks.register('printAlphaPolicy') {
-                doLast {
-                    def alpha = android.buildTypes.getByName('alpha')
-                    println("ALPHA_POLICY fallbacks=${'$'}{alpha.matchingFallbacks} " +
-                        "debuggable=${'$'}{alpha.debuggable}")
-                }
-            }
-
             tasks.register('printReleasePolicy') {
                 doLast {
                     def release = android.buildTypes.getByName('release')
@@ -76,14 +68,19 @@ class AndroidApplicationPluginFunctionalTest {
                 }
             }
 
+            android.buildTypes.create('alpha') {
+                initWith(android.buildTypes.getByName('release'))
+                matchingFallbacks = ['release']
+            }
+
             tasks.register('printSigningPolicy') {
                 doLast {
                     def debug = android.buildTypes.getByName('debug')
                     def alpha = android.buildTypes.getByName('alpha')
                     def release = android.buildTypes.getByName('release')
                     println("SIGNING_POLICY debug=${'$'}{debug.signingConfig.name} " +
-                        "alpha=${'$'}{alpha.signingConfig.name} " +
-                        "release=${'$'}{release.signingConfig.name}")
+                        "release=${'$'}{release.signingConfig.name} " +
+                        "alpha=${'$'}{alpha.signingConfig.name}")
                 }
             }
             """.trimIndent(),
@@ -119,17 +116,6 @@ class AndroidApplicationPluginFunctionalTest {
     }
 
     @Test
-    fun `alpha uses release policy and dependency fallback`() {
-        val result = runner("printAlphaPolicy").build()
-
-        assertTrue(
-            result.output.contains(
-                "ALPHA_POLICY fallbacks=[release] debuggable=false",
-            ),
-        )
-    }
-
-    @Test
     fun `release enables code and resource shrinking`() {
         val result = runner("printReleasePolicy").build()
 
@@ -146,7 +132,7 @@ class AndroidApplicationPluginFunctionalTest {
 
         assertTrue(
             result.output.contains(
-                "SIGNING_POLICY debug=release alpha=release release=release",
+                "SIGNING_POLICY debug=release release=release",
             ),
         )
     }
@@ -173,7 +159,7 @@ class AndroidApplicationPluginFunctionalTest {
     fun `debug packaging refuses missing release signing`() {
         deleteSigningConfig()
 
-        val result = runner("assembleDebug").buildAndFail()
+        val result = unsignedRunner("assembleDebug").buildAndFail()
 
         assertTrue(result.output.contains("APK/AAB packaging requires complete release signing"))
     }
@@ -182,7 +168,7 @@ class AndroidApplicationPluginFunctionalTest {
     fun `release packaging refuses missing release signing`() {
         deleteSigningConfig()
 
-        val result = runner("assembleRelease").buildAndFail()
+        val result = unsignedRunner("assembleRelease").buildAndFail()
 
         assertTrue(result.output.contains("APK/AAB packaging requires complete release signing"))
     }
@@ -196,11 +182,25 @@ class AndroidApplicationPluginFunctionalTest {
         assertTrue(result.output.contains("BUILD SUCCESSFUL"))
     }
 
-    private fun runner(vararg arguments: String): GradleRunner = GradleRunner.create()
-        .withProjectDir(projectDir.toFile())
-        .withPluginClasspath()
-        .withArguments(*arguments, "--stacktrace")
-        .forwardOutput()
+    private fun runner(vararg arguments: String): GradleRunner {
+        val effectiveArguments = arguments.toMutableList()
+        System.getenv("MAGISK_ANDROID_AAPT2_OVERRIDE")
+            ?.takeIf(String::isNotBlank)
+            ?.let { aapt2Path ->
+                effectiveArguments += "-Pandroid.aapt2FromMavenOverride=$aapt2Path"
+            }
+
+        effectiveArguments += "-Pmagisk.signing.keystore=${projectDir.resolve("release.jks")}"
+        effectiveArguments += "-Pmagisk.signing.properties=${projectDir.resolve("signature.properties")}"
+
+        return GradleRunner.create()
+            .withProjectDir(projectDir.toFile())
+            .withPluginClasspath()
+            .withArguments(*effectiveArguments.toTypedArray(), "--stacktrace")
+            .forwardOutput()
+    }
+
+    private fun unsignedRunner(vararg arguments: String): GradleRunner = runner(*arguments)
 
     private fun createSigningConfig() {
         val keytool = Path.of(

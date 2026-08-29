@@ -1,10 +1,7 @@
 import com.android.build.api.dsl.ApplicationExtension
 import com.android.build.api.dsl.LibraryExtension
 import com.android.build.api.dsl.ProductFlavor
-import com.android.build.api.variant.ApplicationAndroidComponentsExtension
-import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import org.gradle.kotlin.dsl.configure
-import org.gradle.kotlin.dsl.getByType
 
 plugins {
     id("magisk.android.common")
@@ -58,24 +55,10 @@ pluginManager.withPlugin("com.android.application") {
     extensions.configure<ApplicationExtension> {
         configureSmscodeFlavors()
     }
-    extensions.getByType<ApplicationAndroidComponentsExtension>().beforeVariants(
-        extensions.getByType<ApplicationAndroidComponentsExtension>().selector().all(),
-    ) { variantBuilder ->
-        if (variantBuilder.productFlavors.toMap()["distribution"] == "fdroid") {
-            variantBuilder.enable = false
-        }
-    }
 }
 
 pluginManager.withPlugin("com.android.library") {
     extensions.configure<LibraryExtension> {
         configureSmscodeFlavors()
-    }
-    extensions.getByType<LibraryAndroidComponentsExtension>().beforeVariants(
-        extensions.getByType<LibraryAndroidComponentsExtension>().selector().all(),
-    ) { variantBuilder ->
-        if (variantBuilder.productFlavors.toMap()["distribution"] == "fdroid") {
-            variantBuilder.enable = false
-        }
     }
 }

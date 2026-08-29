@@ -11,6 +11,7 @@ Current plugin set:
 - `magisk.android.compose`
 - `magisk.android.library`
 - `magisk.android.room`
+- `magisk.kotlin.library`
 - `magisk.app.packaging`
 - `magisk.app.signing`
 - `magisk.maintenance`
@@ -45,15 +46,39 @@ Android library lint keeps AGP's blocking default. Consumers may suppress
 specific, documented checks per module, but the shared convention never turns
 off lint failures globally.
 
-### Relay flavor policy
+### Distribution policy
 
-`relay.android.common` uses its `distribution` dimension for delivery policy:
-Play, GitHub with/without E2EE, and F-Droid. Runtime capability states such as
-Enhanced (Xposed active) and Standard (system APIs) belong in the consuming
-application's runtime policy and must not be added here as `full` / `lite`
-flavors. A separate binary distribution is justified only by a concrete
-packaging or store-compliance requirement, not by the absence of Xposed at
-runtime.
+`smscode.android.common` and `relay.android.common` own their product flavor matrices and
+BuildConfig capability flags. Play, GitHub, and F-Droid application/library variants are
+all real build variants; a convention must not create a flavor and then silently disable it.
+Relay dynamic-feature variants remain Play-only because Play Feature Delivery is a store
+capability rather than a runtime mode.
+
+`magisk.app.packaging` owns generic APK split, bundle, timestamp, and artifact-name behavior.
+Product-specific output constraints stay with the product convention: in particular,
+`relay.android.common` owns the arm64-only `githubWithE2ee` output policy.
+
+Runtime capability states such as Enhanced (Xposed active) and Standard (system APIs) belong
+in the consuming application's runtime policy and must not be added here as `full` / `lite`
+flavors. A separate binary distribution is justified only by a concrete packaging or
+store-compliance requirement, not by the absence of Xposed at runtime.
+
+### Test runtime policy
+
+Applying `magisk.maintenance` to the root project standardizes JUnit Platform execution,
+Java 26 native/dynamic-agent flags, worker heap/fork limits, and test logging for every
+subproject. Android compile conventions do not mutate test workers.
+
+### Signing contract
+
+`magisk.app.signing` accepts the standard environment variables `KEYSTORE_FILE`,
+`STORE_PASSWORD`, `KEY_ALIAS`, and `KEY_PASSWORD`. Relative keystore paths are resolved from
+the root project. Local builds may instead use `-Pmagisk.signing.keystore=...` and
+`-Pmagisk.signing.properties=...`; defaults are `release.jks`/`app/release.jks` and
+`signature.properties`/`app/signature.properties`. Historical Tianma/Yuuta properties and
+credential aliases are intentionally unsupported. Every application build type declared by a
+consumer uses the shared release signing config; the signing convention does not create
+product-specific build types.
 
 ## Shared Gradle Assets
 

@@ -69,6 +69,15 @@ dependencies {
 
 tasks.withType<Test>().configureEach {
     useJUnitPlatform()
+    // The functional tests load Gradle plugins through Byte Buddy on Java 26.
+    jvmArgs(
+        "-Xshare:off",
+        "--enable-native-access=ALL-UNNAMED",
+        "-XX:+EnableDynamicAgentLoading",
+    )
+    if (Runtime.version().feature() >= 24) {
+        jvmArgs("--sun-misc-unsafe-memory-access=allow")
+    }
     testLogging {
         events(
             TestLogEvent.PASSED,

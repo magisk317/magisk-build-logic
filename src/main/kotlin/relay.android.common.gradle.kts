@@ -4,8 +4,8 @@ import com.android.build.api.dsl.DynamicFeatureProductFlavor
 import com.android.build.api.dsl.LibraryExtension
 import com.android.build.api.dsl.ProductFlavor
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
+import com.android.build.api.variant.FilterConfiguration
 import com.android.build.api.variant.DynamicFeatureAndroidComponentsExtension
-import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByType
 
@@ -71,10 +71,6 @@ private fun configureRelayFlavor(flavor: DynamicFeatureProductFlavor) {
     }
 }
 
-private fun isSupportedRelayVariant(productFlavors: Map<String, String>): Boolean {
-    return productFlavors[DISTRIBUTION_DIMENSION] != FDROID_FLAVOR
-}
-
 private fun isSupportedRelayDynamicFeatureVariant(productFlavors: Map<String, String>): Boolean {
     return productFlavors[DISTRIBUTION_DIMENSION] == PLAY_FLAVOR
 }
@@ -113,11 +109,18 @@ pluginManager.withPlugin("com.android.application") {
     extensions.configure<ApplicationExtension> {
         configureRelayFlavors()
     }
-    extensions.getByType<ApplicationAndroidComponentsExtension>().beforeVariants(
-        extensions.getByType<ApplicationAndroidComponentsExtension>().selector().all(),
-    ) { variantBuilder ->
-        if (!isSupportedRelayVariant(variantBuilder.productFlavors.toMap())) {
-            variantBuilder.enable = false
+    extensions.getByType<ApplicationAndroidComponentsExtension>().apply {
+        onVariants(selector().all()) { variant ->
+            if (variant.productFlavors.toMap()[DISTRIBUTION_DIMENSION] == GITHUB_WITH_E2EE_FLAVOR) {
+                variant.outputs.forEach { output ->
+                    val abi = output.filters.find {
+                        it.filterType == FilterConfiguration.FilterType.ABI
+                    }?.identifier ?: "universal"
+                    if (abi != "arm64-v8a" && abi != "universal") {
+                        output.enabled.set(false)
+                    }
+                }
+            }
         }
     }
 }
@@ -125,13 +128,6 @@ pluginManager.withPlugin("com.android.application") {
 pluginManager.withPlugin("com.android.library") {
     extensions.configure<LibraryExtension> {
         configureRelayFlavors()
-    }
-    extensions.getByType<LibraryAndroidComponentsExtension>().beforeVariants(
-        extensions.getByType<LibraryAndroidComponentsExtension>().selector().all(),
-    ) { variantBuilder ->
-        if (!isSupportedRelayVariant(variantBuilder.productFlavors.toMap())) {
-            variantBuilder.enable = false
-        }
     }
 }
 
