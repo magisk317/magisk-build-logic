@@ -7,8 +7,7 @@ import org.gradle.api.Project
 import org.gradle.kotlin.dsl.configure
 
 fun CommonExtension.configureMagiskAndroidCommon() {
-    val compileSdkApi = project.catalogInt("compileSdk")
-    compileSdk = compileSdkApi
+    compileSdk(project.magiskCompileSdk())
     project.catalogIntOrNull("compileSdkExtension")?.let { compileSdkExtension = it }
 
     val javaVersion = JavaVersion.toVersion(project.magiskJavaTarget())

@@ -16,6 +16,18 @@ class AndroidSdkSpecTest {
     }
 
     @Test
+    fun `parses minor API levels`() {
+        assertEquals(AndroidSdkSpec.Minor(37, 1), parseAndroidSdkSpec("37.1"))
+        assertEquals(AndroidSdkSpec.Minor(37, 2), parseAndroidSdkSpec("android-37.2"))
+    }
+
+    @Test
+    fun `parses beta platforms`() {
+        assertEquals(AndroidSdkSpec.Beta(37, 2, 3), parseAndroidSdkSpec("37.2-beta3"))
+        assertEquals(AndroidSdkSpec.Beta(37, 2, 3), parseAndroidSdkSpec("android-37.2-beta3"))
+    }
+
+    @Test
     fun `rejects blank SDK values`() {
         assertThrows(IllegalArgumentException::class.java) {
             parseAndroidSdkSpec("  ")

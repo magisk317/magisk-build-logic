@@ -25,6 +25,11 @@ for target_dir in "$@"; do
   install -m 0644 "${SOURCE_DIR}/gradlew.bat" "${target_dir}/gradlew.bat"
   install -m 0644 "${SOURCE_DIR}/wrapper/gradle-wrapper.jar" "${target_dir}/gradle/wrapper/gradle-wrapper.jar"
   install -m 0644 "${SOURCE_DIR}/wrapper/gradle-wrapper.properties" "${target_dir}/gradle/wrapper/gradle-wrapper.properties"
+  # Merge shared version catalog with consumer-specific entries.
+  # Consumer entries override shared entries with the same alias.
+  python3 "${SCRIPT_DIR}/merge_catalogs.py" \
+    "${SOURCE_DIR}/libs.versions.toml" \
+    "${target_dir}/gradle/libs.versions.toml"
 
   TARGET_GRADLE_PROPS="${target_dir}/gradle.properties" \
   COMMON_PROPS_FILE="${COMMON_PROPS_FILE}" \

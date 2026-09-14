@@ -1,0 +1,20 @@
+include:
+  - project: magisk3171/shared/magisk-ci-toolkit
+    ref: 43475cf4047384f775bfd2d20e0cc5d4d476c830
+    file: /.gitlab/ci/renovate.yml
+
+variables:
+  MAGISK_CI_TOOLKIT_REF: "617a52e75324b5726998f07d504948b7657027a9"
+  MAGISK_CI_TOOLKIT_REPOSITORY: "https://gitlab.com/magisk3171/shared/magisk-ci-toolkit.git"
+  MAGISK_RENOVATE_REPOSITORY: "magisk3171/shared/magisk-build-logic"
+  MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
+
+stages:
+  - maintenance
+
+renovate:gitlab:
+  extends: .magisk_renovate_gitlab
+  interruptible: false
+  stage: maintenance
+  tags:
+    - magisk-arm64-linux

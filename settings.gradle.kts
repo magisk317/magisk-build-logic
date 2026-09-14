@@ -15,11 +15,11 @@ dependencyResolutionManagement {
     }
     versionCatalogs {
         create("libs") {
-            val parentCatalog = file("../gradle/libs.versions.toml")
-            check(parentCatalog.isFile) {
-                "magisk-build-logic requires a consumer catalog at ../gradle/libs.versions.toml"
+            val catalog = file("shared/gradle/libs.versions.toml")
+            check(catalog.isFile) {
+                "magisk-build-logic requires a catalog at shared/gradle/libs.versions.toml"
             }
-            from(files(parentCatalog))
+            from(files(catalog))
         }
     }
 }

@@ -18,6 +18,9 @@ internal fun Project.catalogVersionOrNull(name: String): String? = libsCatalog()
     .orElse(null)
     ?.requiredVersion
 
+internal fun Project.propertyOrCatalogVersion(property: String, catalogKey: String): String =
+    providers.gradleProperty(property).getOrElse(catalogVersion(catalogKey))
+
 internal fun Project.catalogInt(name: String): Int = catalogVersion(name).toInt()
 
 internal fun Project.catalogIntOrNull(name: String): Int? = catalogVersionOrNull(name)?.toIntOrNull()

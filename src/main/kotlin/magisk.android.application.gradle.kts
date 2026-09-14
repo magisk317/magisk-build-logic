@@ -11,8 +11,10 @@ extensions.configure<ApplicationExtension> {
         .firstOrNull { project.file(it).isFile }
 
     defaultConfig {
-        when (val spec = parseAndroidSdkSpec(project.catalogVersion("minSdk"))) {
+        when (val spec = parseAndroidSdkSpec(project.propertyOrCatalogVersion("minSdk", "minSdk"))) {
             is AndroidSdkSpec.ApiLevel -> minSdk = spec.value
+            is AndroidSdkSpec.Minor -> minSdk = spec.apiLevel
+            is AndroidSdkSpec.Beta -> minSdk = spec.apiLevel
             is AndroidSdkSpec.Preview -> {
                 @Suppress("DEPRECATION")
                 minSdkPreview = spec.codename
@@ -20,6 +22,8 @@ extensions.configure<ApplicationExtension> {
         }
         when (val spec = parseAndroidSdkSpec(project.catalogVersion("targetSdk"))) {
             is AndroidSdkSpec.ApiLevel -> targetSdk = spec.value
+            is AndroidSdkSpec.Minor -> targetSdk = spec.apiLevel
+            is AndroidSdkSpec.Beta -> targetSdk = spec.apiLevel
             is AndroidSdkSpec.Preview -> targetSdkPreview = spec.codename
         }
     }
