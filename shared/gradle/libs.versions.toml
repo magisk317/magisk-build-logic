@@ -71,7 +71,7 @@ koin = "4.2.2"
 hilt = "2.59.2"
 
 # UI
-miuix = "0.8.8"
+miuix = "0.9.4-rc01"
 
 # Billing
 billing = "9.1.0"
