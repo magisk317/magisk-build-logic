@@ -1,10 +1,10 @@
 include:
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: 43475cf4047384f775bfd2d20e0cc5d4d476c830
+    ref: v1
     file: /.gitlab/ci/renovate.yml
 
 variables:
-  MAGISK_CI_TOOLKIT_REF: "65fb87e847e182bbf8e84b52abb2edd94da33511"
+  MAGISK_CI_TOOLKIT_REF: "v1"
   MAGISK_CI_TOOLKIT_REPOSITORY: "https://gitlab.com/magisk3171/shared/magisk-ci-toolkit.git"
   MAGISK_RENOVATE_REPOSITORY: "magisk3171/shared/magisk-build-logic"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
