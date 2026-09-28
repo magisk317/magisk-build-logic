@@ -19,16 +19,25 @@ val agpVersion = catalogVersion("agp")
 val kotlinVersion = catalogVersion("kotlin")
 val kspVersion = catalogVersion("ksp")
 val buildLogicBytecodeVersion = catalogVersion("javaBytecode")
+// The shared catalog emits 27 for consumers (Java 27), but this included build
+// is compiled by Gradle's embedded kotlin-dsl compiler, whose JvmTarget enum
+// still caps at 26 - JvmTarget.fromTarget("27") fails configuration for
+// every consumer pinned at a catalog with javaBytecode=27. build-logic classes
+// only ever load on the build JVM, so compile them at the highest target the
+// embedded compiler understands and leave the consumer-facing key authoritative
+// for module compilation. Same ceiling pattern as the detekt jvmTarget clamp
+// in the consumer repos.
+val buildLogicCompileVersion = buildLogicBytecodeVersion.toInt().coerceAtMost(26).toString()
 val junitVersion = "6.1.1"
 
 java {
-    sourceCompatibility = JavaVersion.toVersion(buildLogicBytecodeVersion)
-    targetCompatibility = JavaVersion.toVersion(buildLogicBytecodeVersion)
+    sourceCompatibility = JavaVersion.toVersion(buildLogicCompileVersion)
+    targetCompatibility = JavaVersion.toVersion(buildLogicCompileVersion)
 }
 
 kotlin {
     compilerOptions {
-        jvmTarget.set(JvmTarget.fromTarget(buildLogicBytecodeVersion))
+        jvmTarget.set(JvmTarget.fromTarget(buildLogicCompileVersion))
     }
 }
 

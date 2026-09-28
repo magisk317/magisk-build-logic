@@ -26,7 +26,12 @@ def parse_section_keys(text, section):
 
 # Keys in [versions] that are owned by the shared catalog: the shared value
 # always wins so a single bump here reaches every consumer on next sync.
-SHARED_MANAGED_VERSION_KEYS = {"compileSdk", "targetSdk", "java", "javaBytecode"}
+SHARED_MANAGED_VERSION_KEYS = set()  # retained for compatibility; versions merge now favors shared
+# Keys where the CONSUMER value wins even though shared defines one.
+# build-logic needs these present in its own catalog (build.gradle.kts /
+# MagiskCatalog.kt read javaBytecode), but some consumers cannot move to
+# the shared value (xinyi crashes on bytecode 27), so the consumer pin wins.
+CONSUMER_OVERRIDE_VERSION_KEYS = {"javaBytecode"}
 
 shared_text = Path(sys.argv[1]).read_text()
 consumer_text = Path(sys.argv[2]).read_text() if Path(sys.argv[2]).exists() else ""
@@ -36,11 +41,16 @@ for section in ('versions', 'libraries', 'plugins'):
     shared = parse_section_keys(shared_text, section)
     consumer = parse_section_keys(consumer_text, section)
     # Consumer overrides shared, except shared-managed SDK/language keys.
-    merged = {**shared, **consumer}
     if section == "versions":
-        for key in SHARED_MANAGED_VERSION_KEYS:
-            if key in shared:
-                merged[key] = shared[key]
+        # Shared catalog is the single source of truth for every version key it
+        # defines; consumer-only keys are preserved. A single bump in
+        # build-logic now reaches every consumer on the next sync.
+        merged = {**consumer, **shared}
+        for _k in CONSUMER_OVERRIDE_VERSION_KEYS:
+            if _k in consumer:
+                merged[_k] = consumer[_k]
+    else:
+        merged = {**shared, **consumer}
 
     out.append(f'[{section}]')
     # Shared entries in order (resolves to merged value → deduped)

@@ -18,3 +18,33 @@ renovate:gitlab:
   stage: maintenance
   tags:
     - magisk-arm64-linux
+  # Override the toolkit default (which also runs on schedule): keep build-logic
+  # Renovate manual-only (web/api) so the daily consumer-sync schedule does not
+  # double-trigger a Renovate run. Re-add the `$CI_PIPELINE_SOURCE == "schedule"`
+  # rule here to enable a daily Renovate bump of the shared catalog.
+  rules:
+    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "web"'
+    - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "api"'
+    - when: never
+
+# Syncs the shared Gradle version catalog from build-logic into every consumer
+# repo and pushes directly (no MR gate). Runs on a daily schedule and can also
+# be triggered manually from the pipeline UI. Requires the CONSUMER_SYNC_TOKEN
+# CI variable (a GitLab token with push access to all three consumer repos).
+sync:consumers:
+  # Pin the image explicitly: the runner default (alpine:3.22) ships neither
+  # bash, python3 nor git, and the script needs all three. Without this the job
+  # died instantly with "bash: not found" (exit 127) on every run.
+  image: alpine:3.22
+  before_script:
+    - apk add --no-cache bash python3 git
+  stage: maintenance
+  tags:
+    - magisk-arm64-linux
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule"
+    - if: $CI_PIPELINE_SOURCE == "web"
+  script:
+    - bash scripts/sync_and_push_consumers.sh
+  variables:
+    CONSUMER_SYNC_TOKEN: $CONSUMER_SYNC_TOKEN
