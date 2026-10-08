@@ -1,0 +1,10 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "description": "Self-Renovate policy for the shared Gradle build-logic repository. Consumers inherit the shared policy from the root default.json (gitlab>magisk3171/shared/magisk-ci-toolkit preset); this file only overrides what differs for this repository. Without it the shared Renovate template fails closed: it sets requireConfig=required with onboarding=false and looks for .gitlab/renovate.json before falling back to renovate.json.",
+  "extends": [
+    "gitlab>magisk3171/shared/magisk-ci-toolkit"
+  ],
+  "baseBranchPatterns": [
+    "main"
+  ]
+}

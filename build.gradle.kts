@@ -28,7 +28,7 @@ val buildLogicBytecodeVersion = catalogVersion("javaBytecode")
 // for module compilation. Same ceiling pattern as the detekt jvmTarget clamp
 // in the consumer repos.
 val buildLogicCompileVersion = buildLogicBytecodeVersion.toInt().coerceAtMost(26).toString()
-val junitVersion = "6.1.1"
+val junitVersion = "6.1.3"
 
 java {
     sourceCompatibility = JavaVersion.toVersion(buildLogicCompileVersion)
@@ -55,6 +55,7 @@ configurations.configureEach {
         force(forcedDependency("io.netty", "netty-handler-proxy", "netty-codec"))
         force(forcedDependency("org.apache.commons", "commons-lang3", "commons-lang3"))
         force(forcedDependency("org.bitbucket.b_c", "jose4j", "jose4j"))
+        force(forcedDependency("com.google.crypto.tink", "tink", "tink"))
         force(forcedDependency("org.bouncycastle", "bcpkix-jdk18on", "bouncycastle"))
         force(forcedDependency("org.bouncycastle", "bcprov-jdk18on", "bouncycastle"))
         force(forcedDependency("org.jdom", "jdom2", "jdom2"))

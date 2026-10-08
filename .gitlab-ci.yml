@@ -3,47 +3,71 @@ include:
     ref: v1
     file: /.gitlab/ci/renovate.yml
 
+  # Bridges into the protected toolkit controller, which merges the merge
+  # requests Renovate opens here (ci/auto_merge_upstream_mr.sh) and cancels
+  # superseded Renovate pipelines (ci/cancel_older_renovate_pipelines.sh).
+  # Without this include the shared catalog bumps Renovate proposes would wait
+  # for a human to merge them. Requires magisk3171/shared/magisk-build-logic to
+  # be listed in the controller allowlist (ci/trusted_projects.sh).
+  - project: magisk3171/shared/magisk-ci-toolkit
+    ref: v1
+    file: /.gitlab/ci/cancel-mr-pipelines.yml
+
 variables:
   MAGISK_CI_TOOLKIT_REF: "v1"
   MAGISK_CI_TOOLKIT_REPOSITORY: "https://gitlab.com/magisk3171/shared/magisk-ci-toolkit.git"
   MAGISK_RENOVATE_REPOSITORY: "magisk3171/shared/magisk-build-logic"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
 
+# One schedule drives both jobs, ordered by stage: Renovate proposes the bump,
+# then the sync pushes whatever has already landed. No schedule variables are
+# needed -- none of the consumer repos use them either, and this token cannot
+# write them (403 on POST pipeline_schedules/:id/variables).
 stages:
-  - maintenance
+  - catalog-bump
+  - catalog-sync
 
 renovate:gitlab:
   extends: .magisk_renovate_gitlab
   interruptible: false
-  stage: maintenance
+  # The serial loop aborts on the first transient GitLab error - a single 503
+  # during the 7 October rate-limit preview window killed the whole run and,
+  # with it, the consumer sync in the next stage. Renovate is idempotent, so
+  # a rerun refreshes the same branches instead of opening duplicates.
+  retry:
+    max: 2
+  stage: catalog-bump
   tags:
     - magisk-arm64-linux
-  # Override the toolkit default (which also runs on schedule): keep build-logic
-  # Renovate manual-only (web/api) so the daily consumer-sync schedule does not
-  # double-trigger a Renovate run. Re-add the `$CI_PIPELINE_SOURCE == "schedule"`
-  # rule here to enable a daily Renovate bump of the shared catalog.
   rules:
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
     - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "web"'
     - if: '$DEPENDENCY_OWNER == "gitlab" && $CI_PIPELINE_SOURCE == "api"'
     - when: never
 
+# Merges the merge requests Renovate opens into this repository. The bridge
+# cannot target the controller project from inside the controller, so every
+# upstream (including this one) declares the job and the toolkit runs it.
+cancel:older:mr:pipelines:
+  extends: .magisk_cancel_older_mr_pipelines
+  stage: catalog-bump
+
 # Syncs the shared Gradle version catalog from build-logic into every consumer
-# repo and pushes directly (no MR gate). Runs on a daily schedule and can also
-# be triggered manually from the pipeline UI. Requires the CONSUMER_SYNC_TOKEN
-# CI variable (a GitLab token with push access to all three consumer repos).
+# repo and pushes directly (no MR gate). Shares the daily schedule with
+# Renovate, one stage later: Renovate opens or refreshes the merge requests, the
+# controller merges them, and the next run carries them to the consumers.
+# Requires the CONSUMER_SYNC_TOKEN CI variable (a GitLab token with push access
+# to all three consumer repos).
 sync:consumers:
-  # Pin the image explicitly: the runner default (alpine:3.22) ships neither
-  # bash, python3 nor git, and the script needs all three. Without this the job
-  # died instantly with "bash: not found" (exit 127) on every run.
-  image: alpine:3.22
-  before_script:
-    - apk add --no-cache bash python3 git
-  stage: maintenance
+  # Uses the pre-baked utility image which already includes bash, python3, and git,
+  # avoiding runtime apk add latency during catalog sync.
+  image: "registry.gitlab.com/magisk3171/shared/magisk-ci-toolkit/utility:3.24"
+  stage: catalog-sync
   tags:
     - magisk-arm64-linux
   rules:
-    - if: $CI_PIPELINE_SOURCE == "schedule"
-    - if: $CI_PIPELINE_SOURCE == "web"
+    - if: '$CI_PIPELINE_SOURCE == "schedule"'
+    - if: '$CI_PIPELINE_SOURCE == "web"'
   script:
     - bash scripts/sync_and_push_consumers.sh
   variables:
