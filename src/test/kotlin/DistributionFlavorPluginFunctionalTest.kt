@@ -18,11 +18,12 @@ class DistributionFlavorPluginFunctionalTest {
     }
 
     @Test
-    fun `relay convention enables fdroid application variants`() {
+    fun `relay convention enables play and github application variants`() {
         val result = runTasksFor("relay.android.common")
 
-        assertTrue(result.output.contains("assembleFdroidDebug"), result.output)
-        assertTrue(result.output.contains("assembleFdroidRelease"), result.output)
+        assertTrue(result.output.contains("assemblePlayDebug"), result.output)
+        assertTrue(result.output.contains("assembleGithubDebug"), result.output)
+        assertTrue(result.output.contains("assembleGithubRelease"), result.output)
     }
 
     private fun runTasksFor(distributionPlugin: String) = createConsumerProject(distributionPlugin).let { project ->

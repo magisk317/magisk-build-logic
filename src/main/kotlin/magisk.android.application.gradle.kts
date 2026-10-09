@@ -49,9 +49,17 @@ extensions.configure<ApplicationExtension> {
         }
     }
 
+    project.catalogVersionOrNull("cmake")?.let { cmakeVer ->
+        externalNativeBuild {
+            cmake {
+                version = cmakeVer
+            }
+        }
+    }
+
     packaging {
         jniLibs {
-            keepDebugSymbols += "**/*.so"
+            useLegacyPackaging = true
         }
     }
 }

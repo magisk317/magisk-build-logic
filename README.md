@@ -27,8 +27,8 @@ Current plugin set:
 
 When this repository is included as `build-logic/` inside a consumer project, it
 reads the parent project's `gradle/libs.versions.toml` so the convention plugin
-classpath follows the consuming app's AGP, Kotlin, KSP, Hilt, Java bytecode,
-and forced-dependency versions.
+classpath follows the consuming app's AGP, Kotlin, KSP, Hilt and Java bytecode
+versions.
 
 The consumer catalog is required; this repository does not carry fallback
 toolchain or dependency versions.
@@ -56,7 +56,7 @@ capability rather than a runtime mode.
 
 `magisk.app.packaging` owns generic APK split, bundle, timestamp, and artifact-name behavior.
 Product-specific output constraints stay with the product convention: in particular,
-`relay.android.common` owns the arm64-only `githubWithE2ee` output policy.
+`relay.android.common` owns the play/github distribution flavor set (F-Droid is paused there).
 
 Runtime capability states such as Enhanced (Xposed active) and Standard (system APIs) belong
 in the consuming application's runtime policy and must not be added here as `full` / `lite`
@@ -114,8 +114,8 @@ For `magisk.app.packaging`, consumers can override the artifact base name:
 extra["artifactBaseName"] = "MiPushFramework"
 ```
 
-Release APK names omit plain GitHub distribution labels, shorten
-`githubWithE2ee` to `e2ee`, and preserve product-specific flavors such as
-`normal` or `vc105`. Play App Bundles keep the Android Gradle Plugin output
+Release APK names omit distribution flavor labels (`play`, `github` in
+xinyi-relay) and preserve product-specific flavor dimensions such as `normal`
+or `vc105`. Play App Bundles keep the Android Gradle Plugin output
 path and filename; release pipelines should consume the `playRelease` bundle
 directly instead of relying on a second renamed copy.

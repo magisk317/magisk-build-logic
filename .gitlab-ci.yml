@@ -18,6 +18,11 @@ variables:
   MAGISK_CI_TOOLKIT_REPOSITORY: "https://gitlab.com/magisk3171/shared/magisk-ci-toolkit.git"
   MAGISK_RENOVATE_REPOSITORY: "magisk3171/shared/magisk-build-logic"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
+  # Cancel the merged MR's own merge_request_event pipeline from the push
+  # pipeline that lands the merge. GitLab has no cancel-on-merge hook and
+  # native auto_cancel never fires on a ref that receives no new pipeline,
+  # so the MR pipeline would otherwise run the quality stage on merged code.
+  MAGISK_CANCEL_MERGED_MR_PIPELINES: "true"
 
 # One schedule drives both jobs, ordered by stage: Renovate proposes the bump,
 # then the sync pushes whatever has already landed. No schedule variables are

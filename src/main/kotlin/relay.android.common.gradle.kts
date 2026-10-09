@@ -5,7 +5,6 @@ import com.android.build.api.dsl.LibraryExtension
 import com.android.build.api.dsl.ProductFlavor
 import com.android.build.api.variant.ApplicationAndroidComponentsExtension
 import com.android.build.api.variant.BuildConfigField
-import com.android.build.api.variant.FilterConfiguration
 import com.android.build.api.variant.DynamicFeatureAndroidComponentsExtension
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import com.android.build.api.variant.Variant
@@ -18,19 +17,15 @@ plugins {
 
 val DISTRIBUTION_DIMENSION = "distribution"
 val PLAY_FLAVOR = "play"
-val GITHUB_NO_E2EE_FLAVOR = "githubNoE2ee"
-val GITHUB_WITH_E2EE_FLAVOR = "githubWithE2ee"
-val FDROID_FLAVOR = "fdroid"
+val GITHUB_FLAVOR = "github"
+// F-Droid distribution is paused: keep the block below as the resume point.
+// val FDROID_FLAVOR = "fdroid"
 
 private fun configureRelayFlavor(flavor: ProductFlavor) {
     when (flavor.name) {
         PLAY_FLAVOR -> flavor.dimension = DISTRIBUTION_DIMENSION
-        GITHUB_NO_E2EE_FLAVOR -> flavor.dimension = DISTRIBUTION_DIMENSION
-        GITHUB_WITH_E2EE_FLAVOR -> {
-            flavor.dimension = DISTRIBUTION_DIMENSION
-            flavor.ndk { abiFilters.add("arm64-v8a") }
-        }
-        FDROID_FLAVOR -> flavor.dimension = DISTRIBUTION_DIMENSION
+        GITHUB_FLAVOR -> flavor.dimension = DISTRIBUTION_DIMENSION
+        // FDROID_FLAVOR -> flavor.dimension = DISTRIBUTION_DIMENSION
     }
 }
 
@@ -39,6 +34,17 @@ private fun configureRelayBuildConfigFields(variant: Variant) {
 
     fun put(name: String, value: String) =
         fields.put(name, BuildConfigField<java.io.Serializable>("boolean", value, null))
+
+    fun putString(name: String, value: String) =
+        // BuildConfigField values are emitted verbatim into the generated Java
+        // source, so a String field must carry its own literal quotes.
+        fields.put(name, BuildConfigField<java.io.Serializable>("String", "\"$value\"", null))
+
+    val matrixSdkVersion = project.extensions.getByType<org.gradle.api.artifacts.VersionCatalogsExtension>()
+        .named("libs")
+        .findVersion("matrix-sdk-android")
+        .map { it.requiredVersion }
+        .orElse("")
 
     when (variant.productFlavors.toMap()[DISTRIBUTION_DIMENSION]) {
         PLAY_FLAVOR -> {
@@ -49,39 +55,35 @@ private fun configureRelayBuildConfigFields(variant: Variant) {
             put("HAS_CLOUD_BACKUP", "true")
             put("HAS_MATRIX_E2EE", "true")
         }
-        GITHUB_NO_E2EE_FLAVOR -> {
+        GITHUB_FLAVOR -> {
             put("ENABLE_SMS_CHANNEL", "true")
             put("ALLOW_HTTP_WEBHOOK", "true")
             put("ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
             put("HAS_BILLING", "false")
             put("HAS_CLOUD_BACKUP", "false")
+            // The GitHub flavor ships no E2EE code: the matrix-rust-sdk runtime
+            // arrives as a separately versioned plugin APK (features/matrix-e2ee-plugin)
+            // that is downloaded and DexClassLoader-loaded at runtime. The app only
+            // pins the upstream SDK version it expects the plugin to carry.
             put("HAS_MATRIX_E2EE", "false")
+            putString("MATRIX_PLUGIN_SDK_VERSION", matrixSdkVersion)
         }
-        GITHUB_WITH_E2EE_FLAVOR -> {
-            put("ENABLE_SMS_CHANNEL", "true")
-            put("ALLOW_HTTP_WEBHOOK", "true")
-            put("ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
-            put("HAS_BILLING", "false")
-            put("HAS_CLOUD_BACKUP", "false")
-            put("HAS_MATRIX_E2EE", "true")
-        }
-        FDROID_FLAVOR -> {
-            put("ENABLE_SMS_CHANNEL", "true")
-            put("ALLOW_HTTP_WEBHOOK", "false")
-            put("ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
-            put("HAS_BILLING", "false")
-            put("HAS_CLOUD_BACKUP", "false")
-            put("HAS_MATRIX_E2EE", "false")
-        }
+        // FDROID_FLAVOR -> {
+        //     put("ENABLE_SMS_CHANNEL", "true")
+        //     put("ALLOW_HTTP_WEBHOOK", "false")
+        //     put("ENABLE_ACCESSIBILITY_AUTO_INPUT", "true")
+        //     put("HAS_BILLING", "false")
+        //     put("HAS_CLOUD_BACKUP", "false")
+        //     put("HAS_MATRIX_E2EE", "false")
+        // }
     }
 }
 
 private fun configureRelayFlavor(flavor: DynamicFeatureProductFlavor) {
     when (flavor.name) {
         PLAY_FLAVOR,
-        GITHUB_NO_E2EE_FLAVOR,
-        GITHUB_WITH_E2EE_FLAVOR,
-        FDROID_FLAVOR,
+        GITHUB_FLAVOR,
+        // FDROID_FLAVOR,
         -> flavor.dimension = DISTRIBUTION_DIMENSION
     }
 }
@@ -94,9 +96,9 @@ private fun ApplicationExtension.configureRelayFlavors() {
     flavorDimensions.add(DISTRIBUTION_DIMENSION)
     productFlavors {
         maybeCreate(PLAY_FLAVOR).also(::configureRelayFlavor)
-        maybeCreate(GITHUB_NO_E2EE_FLAVOR).also(::configureRelayFlavor)
-        maybeCreate(GITHUB_WITH_E2EE_FLAVOR).also(::configureRelayFlavor)
-        maybeCreate(FDROID_FLAVOR).also(::configureRelayFlavor)
+        maybeCreate(GITHUB_FLAVOR).also(::configureRelayFlavor)
+        // F-Droid paused: re-enable this line to restore the flavor.
+        // maybeCreate(FDROID_FLAVOR).also(::configureRelayFlavor)
     }
 }
 
@@ -104,9 +106,8 @@ private fun LibraryExtension.configureRelayFlavors() {
     flavorDimensions.add(DISTRIBUTION_DIMENSION)
     productFlavors {
         maybeCreate(PLAY_FLAVOR).also(::configureRelayFlavor)
-        maybeCreate(GITHUB_NO_E2EE_FLAVOR).also(::configureRelayFlavor)
-        maybeCreate(GITHUB_WITH_E2EE_FLAVOR).also(::configureRelayFlavor)
-        maybeCreate(FDROID_FLAVOR).also(::configureRelayFlavor)
+        maybeCreate(GITHUB_FLAVOR).also(::configureRelayFlavor)
+        // maybeCreate(FDROID_FLAVOR).also(::configureRelayFlavor)
     }
 }
 
@@ -114,9 +115,8 @@ private fun DynamicFeatureExtension.configureRelayFlavors() {
     flavorDimensions.add(DISTRIBUTION_DIMENSION)
     productFlavors {
         maybeCreate(PLAY_FLAVOR).also(::configureRelayFlavor)
-        maybeCreate(GITHUB_NO_E2EE_FLAVOR).also(::configureRelayFlavor)
-        maybeCreate(GITHUB_WITH_E2EE_FLAVOR).also(::configureRelayFlavor)
-        maybeCreate(FDROID_FLAVOR).also(::configureRelayFlavor)
+        maybeCreate(GITHUB_FLAVOR).also(::configureRelayFlavor)
+        // maybeCreate(FDROID_FLAVOR).also(::configureRelayFlavor)
     }
 }
 
@@ -127,16 +127,6 @@ pluginManager.withPlugin("com.android.application") {
     extensions.getByType<ApplicationAndroidComponentsExtension>().apply {
         onVariants(selector().all()) { variant ->
             configureRelayBuildConfigFields(variant)
-            if (variant.productFlavors.toMap()[DISTRIBUTION_DIMENSION] == GITHUB_WITH_E2EE_FLAVOR) {
-                variant.outputs.forEach { output ->
-                    val abi = output.filters.find {
-                        it.filterType == FilterConfiguration.FilterType.ABI
-                    }?.identifier ?: "universal"
-                    if (abi != "arm64-v8a" && abi != "universal") {
-                        output.enabled.set(false)
-                    }
-                }
-            }
         }
     }
 }

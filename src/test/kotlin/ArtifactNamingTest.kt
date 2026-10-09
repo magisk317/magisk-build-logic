@@ -3,21 +3,13 @@ import org.junit.jupiter.api.Test
 
 class ArtifactNamingTest {
     @Test
-    fun `omits plain GitHub distribution labels`() {
-        listOf("", "github", "githubNoE2ee").forEach { flavorName ->
+    fun `omits distribution flavor labels`() {
+        listOf("", "github", "play").forEach { flavorName ->
             assertEquals(
                 "arm64-v8a_MiPush_v0.7.0_release.apk",
                 releaseApkName("MiPush", "0.7.0", "release", "arm64-v8a", flavorName),
             )
         }
-    }
-
-    @Test
-    fun `uses concise E2EE distribution label`() {
-        assertEquals(
-            "arm64-v8a_e2ee_XinyiRelay_v0.2.2_release.apk",
-            releaseApkName("XinyiRelay", "0.2.2", "release", "arm64-v8a", "githubWithE2ee"),
-        )
     }
 
     @Test

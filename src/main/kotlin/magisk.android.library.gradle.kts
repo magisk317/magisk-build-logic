@@ -30,9 +30,11 @@ extensions.configure<LibraryExtension> {
         }
     }
 
-    packaging {
-        jniLibs {
-            keepDebugSymbols += "**/*.so"
+    project.catalogVersionOrNull("cmake")?.let { cmakeVer ->
+        externalNativeBuild {
+            cmake {
+                version = cmakeVer
+            }
         }
     }
 }

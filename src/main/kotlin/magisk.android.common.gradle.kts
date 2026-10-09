@@ -9,6 +9,8 @@ import org.gradle.kotlin.dsl.configure
 fun CommonExtension.configureMagiskAndroidCommon() {
     compileSdk(project.magiskCompileSdk())
     project.catalogIntOrNull("compileSdkExtension")?.let { compileSdkExtension = it }
+    project.catalogVersionOrNull("buildTools")?.let { buildToolsVersion = it }
+    project.catalogVersionOrNull("ndk")?.let { ndkVersion = it }
 
     val javaVersion = JavaVersion.toVersion(project.magiskJavaTarget())
     compileOptions.sourceCompatibility = javaVersion
