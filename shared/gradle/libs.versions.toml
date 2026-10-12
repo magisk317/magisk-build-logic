@@ -41,7 +41,7 @@ detekt = "2.0.0-alpha.6"
 documentfile = "1.1.0"
 firebase-bom = "35.0.0"
 google-services = "4.5.0"
-hiddenapibypass = "6.1"
+hiddenapibypass = "6.2"
 hyperisland-kit = "0.4.5"
 jakarta-mail = "2.0.2"
 junit-jupiter = "6.1.3"
@@ -55,7 +55,6 @@ kotlinx-datetime = "0.8.0-0.6.x-compat"
 kotlinx-serialization = "1.11.0"
 kover = "0.9.11"
 ksp = "2.3.12"
-ktor = "3.6.0"
 libsu = "6.0.0"
 libxposed-api = "102.0.0"
 libxposed-service = "102.0.0"
@@ -138,9 +137,6 @@ kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutine
 kotlinx-coroutines-core = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-core", version.ref = "coroutines" }
 kotlinx-coroutines-play-services = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-play-services", version.ref = "coroutines" }
 kotlinx-serialization-json = { module = "org.jetbrains.kotlinx:kotlinx-serialization-json", version.ref = "kotlinx-serialization" }
-ktor-server-auth = { module = "io.ktor:ktor-server-auth", version.ref = "ktor" }
-ktor-server-cio = { module = "io.ktor:ktor-server-cio", version.ref = "ktor" }
-ktor-server-core = { module = "io.ktor:ktor-server-core", version.ref = "ktor" }
 libsu-core = { module = "com.github.topjohnwu.libsu:core", version.ref = "libsu" }
 libxposed-api = { module = "io.github.libxposed:api", version.ref = "libxposed-api" }
 libxposed-service = { module = "io.github.libxposed:service", version.ref = "libxposed-service" }
