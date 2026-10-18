@@ -10,11 +10,12 @@ class DistributionFlavorPluginFunctionalTest {
     lateinit var projectDir: Path
 
     @Test
-    fun `smscode convention enables fdroid application variants`() {
-        val result = runTasksFor("smscode.android.common")
+    fun `xsc convention enables play and github application variants`() {
+        val result = runTasksFor("xsc.android.common")
 
-        assertTrue(result.output.contains("assembleFdroidDebug"), result.output)
-        assertTrue(result.output.contains("assembleFdroidRelease"), result.output)
+        assertTrue(result.output.contains("assemblePlayDebug"), result.output)
+        assertTrue(result.output.contains("assembleGithubDebug"), result.output)
+        assertTrue(result.output.contains("assembleGithubRelease"), result.output)
     }
 
     @Test

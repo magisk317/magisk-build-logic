@@ -8,6 +8,7 @@ import com.android.build.api.variant.BuildConfigField
 import com.android.build.api.variant.DynamicFeatureAndroidComponentsExtension
 import com.android.build.api.variant.LibraryAndroidComponentsExtension
 import com.android.build.api.variant.Variant
+import org.gradle.api.provider.Provider
 import org.gradle.kotlin.dsl.configure
 import org.gradle.kotlin.dsl.getByType
 
@@ -29,8 +30,16 @@ private fun configureRelayFlavor(flavor: ProductFlavor) {
     }
 }
 
-private fun configureRelayBuildConfigFields(variant: Variant) {
+private fun configureRelayBuildConfigFields(
+    variant: Variant,
+    commitHashField: Provider<BuildConfigField<java.io.Serializable>>,
+) {
     val fields = variant.buildConfigFields ?: return
+
+    // AGP materializes buildConfigFields at configuration time, so the commit
+    // hash provider must resolve without running any task; see
+    // registerCommitHashBuildConfigField for how the value is obtained.
+    fields.put("COMMIT_HASH", commitHashField)
 
     fun put(name: String, value: String) =
         fields.put(name, BuildConfigField<java.io.Serializable>("boolean", value, null))
@@ -79,6 +88,13 @@ private fun configureRelayBuildConfigFields(variant: Variant) {
     }
 }
 
+private fun Project.relayCommitHashField(): Provider<BuildConfigField<java.io.Serializable>> {
+    // CI environments and an explicit -PgitCommitHash=... take precedence; only
+    // when neither is present does a configuration-cache-safe ValueSource git
+    // lookup provide the value.
+    return registerCommitHashBuildConfigField(preferInjectedHash = true)
+}
+
 private fun configureRelayFlavor(flavor: DynamicFeatureProductFlavor) {
     when (flavor.name) {
         PLAY_FLAVOR,
@@ -124,9 +140,10 @@ pluginManager.withPlugin("com.android.application") {
     extensions.configure<ApplicationExtension> {
         configureRelayFlavors()
     }
+    val commitHashField = relayCommitHashField()
     extensions.getByType<ApplicationAndroidComponentsExtension>().apply {
         onVariants(selector().all()) { variant ->
-            configureRelayBuildConfigFields(variant)
+            configureRelayBuildConfigFields(variant, commitHashField)
         }
     }
 }
@@ -135,9 +152,10 @@ pluginManager.withPlugin("com.android.library") {
     extensions.configure<LibraryExtension> {
         configureRelayFlavors()
     }
+    val commitHashField = relayCommitHashField()
     extensions.getByType<LibraryAndroidComponentsExtension>().apply {
         onVariants(selector().all()) { variant ->
-            configureRelayBuildConfigFields(variant)
+            configureRelayBuildConfigFields(variant, commitHashField)
         }
     }
 }

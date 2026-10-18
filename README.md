@@ -4,7 +4,7 @@ Shared Gradle convention plugins for the Magisk317 Android app family.
 
 Current plugin set:
 
-- `smscode.android.common`
+- `xsc.android.common`
 - `relay.android.common`
 - `magisk.android.application`
 - `magisk.android.common`
@@ -48,15 +48,19 @@ off lint failures globally.
 
 ### Distribution policy
 
-`smscode.android.common` and `relay.android.common` own their product flavor matrices and
-BuildConfig capability flags. Play, GitHub, and F-Droid application/library variants are
-all real build variants; a convention must not create a flavor and then silently disable it.
-Relay dynamic-feature variants remain Play-only because Play Feature Delivery is a store
-capability rather than a runtime mode.
+`xsc.android.common` (XposedSmsCode) and `relay.android.common` (xinyi-relay) own their
+product flavor matrices and BuildConfig capability flags. Play and GitHub are the active
+distribution flavors for both apps. F-Droid is paused in both conventions: the flavor
+blocks stay commented out with explicit resume points, so the two app-level conventions
+never drift apart. Pausing a distribution is a documented state (comment + resume point +
+this note), never a silent disable — a convention must not create a flavor and then
+quietly drop it. Relay dynamic-feature variants remain Play-only because Play Feature
+Delivery is a store capability rather than a runtime mode.
 
 `magisk.app.packaging` owns generic APK split, bundle, timestamp, and artifact-name behavior.
-Product-specific output constraints stay with the product convention: in particular,
-`relay.android.common` owns the play/github distribution flavor set (F-Droid is paused there).
+Product-specific output constraints stay with the product convention: `xsc.android.common`
+and `relay.android.common` own the play/github distribution flavor set (F-Droid paused in
+both, resume points in the plugin sources).
 
 Runtime capability states such as Enhanced (Xposed active) and Standard (system APIs) belong
 in the consuming application's runtime policy and must not be added here as `full` / `lite`

@@ -46,6 +46,9 @@ extensions.configure<ApplicationExtension> {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"))
             projectProguardFile?.let(::proguardFile)
+            // Release-only rules (e.g. assumenosideeffects for verbose logging)
+            // live here so debug builds, including -PminifyDebug, keep them.
+            project.file("proguard-release.pro").takeIf { it.isFile }?.let(::proguardFile)
         }
     }
 
