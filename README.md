@@ -4,8 +4,8 @@ Shared Gradle convention plugins for the Magisk317 Android app family.
 
 Current plugin set:
 
-- `xsc.android.common`
-- `relay.android.common`
+- `magisk.distribution.policy`
+- `magisk.android.distribution`
 - `magisk.android.application`
 - `magisk.android.common`
 - `magisk.android.compose`
@@ -48,19 +48,51 @@ off lint failures globally.
 
 ### Distribution policy
 
-`xsc.android.common` (XposedSmsCode) and `relay.android.common` (xinyi-relay) own their
-product flavor matrices and BuildConfig capability flags. Play and GitHub are the active
-distribution flavors for both apps. F-Droid is paused in both conventions: the flavor
-blocks stay commented out with explicit resume points, so the two app-level conventions
-never drift apart. Pausing a distribution is a documented state (comment + resume point +
-this note), never a silent disable — a convention must not create a flavor and then
-quietly drop it. Relay dynamic-feature variants remain Play-only because Play Feature
-Delivery is a store capability rather than a runtime mode.
+The distribution matrix is product data, so each consuming repository declares it in its
+root build script and the shared convention only supplies the mechanism that turns the
+declaration into AGP flavors.
+
+Apply `magisk.distribution.policy` once in the root project and declare the channels
+there; Android modules pick it up through `magisk.android.distribution`:
+
+```kotlin
+// root build.gradle.kts
+plugins {
+    id("magisk.distribution.policy")
+}
+
+magiskDistribution {
+    flavor("play") {
+        buildConfigBoolean("HAS_BILLING", true)
+    }
+    flavor("github") {
+        buildConfigBoolean("HAS_BILLING", false)
+        buildConfigVersion("MATRIX_PLUGIN_SDK_VERSION", "matrix-sdk-android")
+    }
+    dynamicFeatureFlavors.add("play")
+    preferInjectedCommitHash = true
+}
+```
+
+Defaults: `dimension` is `distribution`, `dynamicFeatureFlavors` is empty, and
+`preferInjectedCommitHash` is false, so a repository that declares nothing gets no
+flavors — and applying the module plugin without the root declaration fails the build
+rather than silently producing an unflavored artifact.
+
+Play and GitHub are the active channels. F-Droid stays paused, and the resume point now
+lives in each consumer's declaration instead of being restated per convention; a paused
+distribution remains a documented state (comment + resume point + this note), never a
+silent disable. Dynamic-feature variants stay Play-only because Play Feature Delivery is
+a store capability rather than a runtime mode.
+
+Keeping the matrix in the consumer also removes the fallback it used to force: shared
+library modules previously redeclared the flavor set, so an app that did not carry the
+dimension resolved it through `missingDimensionStrategy`, which picked a channel without
+ever reporting the mismatch.
 
 `magisk.app.packaging` owns generic APK split, bundle, timestamp, and artifact-name behavior.
-Product-specific output constraints stay with the product convention: `xsc.android.common`
-and `relay.android.common` own the play/github distribution flavor set (F-Droid paused in
-both, resume points in the plugin sources).
+Product-specific output constraints stay with the product: each consumer declares its own
+distribution flavor set in the root `magiskDistribution` block.
 
 Runtime capability states such as Enhanced (Xposed active) and Standard (system APIs) belong
 in the consuming application's runtime policy and must not be added here as `full` / `lite`

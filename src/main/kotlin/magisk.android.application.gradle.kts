@@ -7,6 +7,8 @@ plugins {
 }
 
 extensions.configure<ApplicationExtension> {
+    val magiskIsCiBuildForProguard: Boolean = (project.providers.gradleProperty("isCiBuild").orNull
+        ?: project.providers.environmentVariable("MAGISK_IS_CI_BUILD").orNull)?.toBooleanStrictOrNull() ?: false
     val projectProguardFile = sequenceOf("proguard-rules.pro", "proguard-common.pro")
         .firstOrNull { project.file(it).isFile }
 
@@ -48,7 +50,11 @@ extensions.configure<ApplicationExtension> {
             projectProguardFile?.let(::proguardFile)
             // Release-only rules (e.g. assumenosideeffects for verbose logging)
             // live here so debug builds, including -PminifyDebug, keep them.
-            project.file("proguard-release.pro").takeIf { it.isFile }?.let(::proguardFile)
+            // CI builds keep full verbosity on purpose (they are the log-capture
+            // channel), so the verbose-stripping rules are skipped for them.
+            if (!magiskIsCiBuildForProguard) {
+                project.file("proguard-release.pro").takeIf { it.isFile }?.let(::proguardFile)
+            }
         }
     }
 
