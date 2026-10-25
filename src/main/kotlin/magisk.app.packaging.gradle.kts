@@ -15,7 +15,12 @@ fun versionStringOrNull(name: String): String? {
     return if (version.isPresent) version.get().requiredVersion else null
 }
 
-val versionNameStr = versionStringOrNull("versionName") ?: rootProject.version.toString()
+// -PversionName must win: local pinned builds and release flows pass it to keep
+// the produced APK at an exact version, while the catalog only carries the
+// in-development default. The root project resolves it the same way.
+val versionNameStr = rootProject.providers.gradleProperty("versionName")
+    .orElse(versionStringOrNull("versionName") ?: rootProject.version.toString())
+    .get()
 fun artifactBaseName(): String = sequenceOf(
     project.findProperty("artifactBaseName")?.toString(),
     project.extensions.extraProperties.properties["artifactBaseName"]?.toString(),
