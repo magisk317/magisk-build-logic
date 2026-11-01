@@ -6,5 +6,17 @@
   ],
   "baseBranchPatterns": [
     "main"
+  ],
+  "packageRules": [
+    {
+      "description": "The gradle-wrapper manager refreshes distributionSha256Sum by running the wrapper task in the project that owns the file. shared/gradle/wrapper is a staged bundle -- there is no settings file and no build there -- so the task cannot run and Renovate falls back to rewriting distributionUrl alone, which is how 9.9.0-rc-1 landed with the 9.9.0-milestone-2 checksum. Nothing in the fleet builds this directory, so the mismatch would stay invisible until the next consumer sync. The wrapper pair is therefore moved on purpose: bump a consumer (where the task really runs and the build verifies the result), then install the approved copy here; scripts/check_wrapper_checksums.sh guards the invariant.",
+      "matchManagers": [
+        "gradle-wrapper"
+      ],
+      "matchFileNames": [
+        "shared/**"
+      ],
+      "enabled": false
+    }
   ]
 }

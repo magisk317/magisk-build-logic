@@ -130,6 +130,24 @@ This repository also carries a shared Gradle asset bundle under
 The sync is intentionally copy-based. It keeps consumer builds reproducible and
 avoids making Gradle startup depend on a moving remote HEAD.
 
+Because nothing in this repository builds, `shared/gradle/wrapper/` is the one
+Gradle wrapper in the fleet whose checksum is never exercised: a consumer that
+receives a `distributionUrl` whose `distributionSha256Sum` belongs to another
+version discovers it at the next `./gradlew`, three repositories away. Two rules
+follow from that.
+
+- `distributionUrl` and `distributionSha256Sum` move as one pair, always.
+  `scripts/check_wrapper_checksums.sh` asserts the pair against the official
+  `<distributionUrl>.sha256` and runs as `verify:wrapper:checksums` on every
+  push and merge request.
+- Renovate does not own this file. The `gradle-wrapper` manager refreshes the
+  checksum by running the wrapper task in the project that owns the file, and
+  this staged bundle is not a project, so its edit would rewrite the URL only
+  (that is how 9.9.0-rc-1 landed with the milestone-2 checksum on 2026-10-31).
+  The rule is in `.gitlab/renovate.json`; the version axis moves here when a
+  consumer is upgraded and its verified wrapper is installed back into the
+  bundle.
+
 `magisk.maintenance` standardizes test logging and exposes an explicit
 `cleanupGradleCaches` task. Normal build, assemble, and clean tasks never delete
 Gradle caches as a side effect.
