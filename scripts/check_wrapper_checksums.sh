@@ -42,18 +42,14 @@ property() {
   printf '%s' "$line" | tr -d '\r' | sed -e 's/\\//g' -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//'
 }
 
-# Gradle publishes the checksum of a distribution next to the distribution
-# itself. When the URL points somewhere else (a mirror) that sidecar may not
-# exist there, so fall back to the canonical host by file name.
+# Gradle publishes each distribution checksum on the canonical service. A
+# mirror's adjacent sidecar is not an authority: trusting it would let a mirror
+# replace both the archive and checksum while still passing this guard.
 official_checksum() {
-  local url="$1" candidate
-  for candidate in "${url}.sha256" \
-    "https://services.gradle.org/distributions/$(basename "$url").sha256"; do
-    if curl -fsSL --retry 2 --max-time 30 "$candidate" 2>/dev/null | tr -d '[:space:]' | tr 'A-F' 'a-f'; then
-      return 0
-    fi
-  done
-  return 1
+  local url="$1"
+  curl -fsSL --retry 2 --max-time 30 \
+    "https://services.gradle.org/distributions/$(basename "$url").sha256" \
+    2>/dev/null | tr -d '[:space:]' | tr 'A-F' 'a-f'
 }
 
 checked=0

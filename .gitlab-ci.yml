@@ -45,15 +45,10 @@ stages:
   - catalog-sync
   - sync
 
-# The staged wrapper template under shared/gradle/wrapper is the only Gradle
-# wrapper in the fleet that no build ever executes: consumers run their own
-# committed copy, so a checksum that does not match its own distributionUrl is
-# silent here and only detonates in the next consumer that syncs it. This job
-# is the guard that replaces the missing build.
-#
-# It runs on push and merge requests, not on the schedule: the mismatch arrives
-# with a dependency commit, and a scheduled check would report it a day later
-# (2026-10-31 -> 2026-11-01 is exactly that gap).
+# Verifies the staged wrapper checksum against Gradle's canonical service and
+# exercises the catalog merge contract, including consumer-owned SDK floors.
+# It runs on push and merge requests, not on the schedule: these invariants move
+# only with repository commits.
 verify:wrapper:checksums:
   extends: .magisk_utility_base
   stage: wrapper-verify
@@ -76,6 +71,8 @@ verify:wrapper:checksums:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: "$CI_COMMIT_BRANCH"
   script:
+    - bash scripts/tests/test_merge_catalogs.sh
+    - bash scripts/tests/test_wrapper_checksums.sh
     - bash scripts/check_wrapper_checksums.sh --root "$CI_PROJECT_DIR"
 
 renovate:gitlab:

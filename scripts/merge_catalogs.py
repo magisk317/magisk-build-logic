@@ -22,10 +22,10 @@ import sys
 from pathlib import Path
 
 # Keys where the CONSUMER value wins even though shared defines one.
-# build-logic needs these present in its own catalog (build.gradle.kts /
-# MagiskCatalog.kt read javaBytecode), but some consumers cannot move to
-# the shared value (xinyi crashes on bytecode 27), so the consumer pin wins.
-CONSUMER_OVERRIDE_VERSION_KEYS = {"javaBytecode"}
+# build-logic needs these present in its own catalog, but both the supported
+# Android floor and bytecode target are consumer contracts rather than fleet
+# dependency versions.
+CONSUMER_OVERRIDE_VERSION_KEYS = {"javaBytecode", "minSdk"}
 
 
 def entry_value(line):
