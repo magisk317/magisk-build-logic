@@ -1,6 +1,6 @@
 include:
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: 268d9e29e5920616e18c60c23f51f9ecf46d33f6
+    ref: 6c91f79ba86c8ca7423c7510a82dbcdd7ad0cf34
     file: /.gitlab/ci/renovate.yml
 
   # Bridges into the protected toolkit controller, which merges the merge
@@ -10,7 +10,7 @@ include:
   # for a human to merge them. Requires magisk3171/shared/magisk-build-logic to
   # be listed in the controller allowlist (ci/trusted_projects.sh).
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: 268d9e29e5920616e18c60c23f51f9ecf46d33f6
+    ref: 6c91f79ba86c8ca7423c7510a82dbcdd7ad0cf34
     file: /.gitlab/ci/cancel-mr-pipelines.yml
 
   # GitHub redundancy mirror. GitLab owns this repository -- source, dependency
@@ -18,14 +18,14 @@ include:
   # a forced copy of the default branch plus the tags. See the toolkit's
   # docs/hosting-cutover.md before changing anything about the mirror.
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: 268d9e29e5920616e18c60c23f51f9ecf46d33f6
+    ref: 6c91f79ba86c8ca7423c7510a82dbcdd7ad0cf34
     file: /.gitlab/ci/utility.yml
   - project: magisk3171/shared/magisk-ci-toolkit
-    ref: 268d9e29e5920616e18c60c23f51f9ecf46d33f6
+    ref: 6c91f79ba86c8ca7423c7510a82dbcdd7ad0cf34
     file: /.gitlab/ci/github-sync.yml
 
 variables:
-  MAGISK_CI_TOOLKIT_REF: "268d9e29e5920616e18c60c23f51f9ecf46d33f6"
+  MAGISK_CI_TOOLKIT_REF: "6c91f79ba86c8ca7423c7510a82dbcdd7ad0cf34"
   MAGISK_CI_TOOLKIT_REPOSITORY: "https://gitlab.com/magisk3171/shared/magisk-ci-toolkit.git"
   MAGISK_RENOVATE_REPOSITORY: "magisk3171/shared/magisk-build-logic"
   MAGISK_CANCEL_OLDER_MR_PIPELINES: "true"
