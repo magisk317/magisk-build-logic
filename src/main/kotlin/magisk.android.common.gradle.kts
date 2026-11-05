@@ -35,20 +35,6 @@ val magiskSkipForceUpdateValue: String =
         )?.toBooleanStrictOrNull()?.toString() ?: "false"
 
 /**
- * Keeps log text and exported bundles unsanitized.
- *
- * Enabled with -PallowPlaintextLogs=true or MAGISK_ALLOW_PLAINTEXT_LOGS=true. It exists for a
- * hand-built run that must show raw SMS or notification content while staying release-shaped;
- * distributed builds never set it, so their bundles keep redacting credentials and phone
- * numbers. It relaxes sanitization only — it does not re-enable stripped logging.
- */
-val magiskAllowPlaintextLogsValue: String =
-    (
-        providers.gradleProperty("allowPlaintextLogs").orNull
-            ?: providers.environmentVariable("MAGISK_ALLOW_PLAINTEXT_LOGS").orNull
-        )?.toBooleanStrictOrNull()?.toString() ?: "false"
-
-/**
  * Commit hash of the repository the module itself is checked out from.
  *
  * Shared libraries arrive as submodules, so their hash is not the app's; a diagnostics bundle
@@ -65,7 +51,6 @@ fun com.android.build.api.dsl.ApplicationExtension.configureMagiskCiBuildFlag() 
     buildFeatures { buildConfig = true }
     defaultConfig { buildConfigField("boolean", "IS_CI_BUILD", magiskIsCiBuildValue) }
     defaultConfig { buildConfigField("boolean", "SKIP_FORCE_UPDATE", magiskSkipForceUpdateValue) }
-    defaultConfig { buildConfigField("boolean", "ALLOW_PLAINTEXT_LOGS", magiskAllowPlaintextLogsValue) }
     defaultConfig { buildConfigField("String", "MODULE_COMMIT_HASH", "\"$magiskModuleCommitHashValue\"") }
 }
 
@@ -73,7 +58,6 @@ fun com.android.build.api.dsl.LibraryExtension.configureMagiskCiBuildFlag() {
     buildFeatures { buildConfig = true }
     defaultConfig { buildConfigField("boolean", "IS_CI_BUILD", magiskIsCiBuildValue) }
     defaultConfig { buildConfigField("boolean", "SKIP_FORCE_UPDATE", magiskSkipForceUpdateValue) }
-    defaultConfig { buildConfigField("boolean", "ALLOW_PLAINTEXT_LOGS", magiskAllowPlaintextLogsValue) }
     defaultConfig { buildConfigField("String", "MODULE_COMMIT_HASH", "\"$magiskModuleCommitHashValue\"") }
 }
 
@@ -81,7 +65,6 @@ fun com.android.build.api.dsl.DynamicFeatureExtension.configureMagiskCiBuildFlag
     buildFeatures { buildConfig = true }
     defaultConfig { buildConfigField("boolean", "IS_CI_BUILD", magiskIsCiBuildValue) }
     defaultConfig { buildConfigField("boolean", "SKIP_FORCE_UPDATE", magiskSkipForceUpdateValue) }
-    defaultConfig { buildConfigField("boolean", "ALLOW_PLAINTEXT_LOGS", magiskAllowPlaintextLogsValue) }
     defaultConfig { buildConfigField("String", "MODULE_COMMIT_HASH", "\"$magiskModuleCommitHashValue\"") }
 }
 
