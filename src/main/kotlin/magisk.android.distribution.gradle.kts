@@ -92,6 +92,13 @@ pluginManager.withPlugin("com.android.library") {
 pluginManager.withPlugin("com.android.dynamic-feature") {
     extensions.configure<DynamicFeatureExtension> {
         configureMagiskDistributionFlavors()
+        // AGP requires a feature's debuggability to match its base application.
+        // Reuse the application's policy, including the bare -PminifyDebug form.
+        buildTypes.named("debug") {
+            isDebuggable = debugOptimization(
+                providers.gradleProperty("minifyDebug").orNull,
+            ).isDebuggable
+        }
     }
     // A dynamic-feature module only produces variants for flavors that actually ship
     // through a store with feature delivery. The rest stay disabled so a plain

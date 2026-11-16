@@ -76,6 +76,123 @@ class DistributionFlavorPluginFunctionalTest {
         assertTrue(result.output.contains("magisk.distribution.policy"), result.output)
     }
 
+    @Test
+    fun `dynamic feature matches base debuggability for ordinary and minified debug`() {
+        val project = createDynamicFeatureConsumer()
+        val cases = listOf(
+            null to true,
+            "-PminifyDebug=false" to true,
+            "-PminifyDebug" to false,
+            "-PminifyDebug=true" to false,
+            "-PminifyDebug=1" to false,
+        )
+        cases.forEach { (flag, debuggable) ->
+            val arguments = mutableListOf(
+                ":feature:processPlayDebugMainManifest",
+                ":feature:processPlayReleaseMainManifest",
+                "printFeatureDebugPolicy",
+                "--configuration-cache",
+                "--configuration-cache-problems=fail",
+                "--max-workers=2",
+                "--no-parallel",
+                "--stacktrace",
+            )
+            flag?.let(arguments::add)
+            System.getenv("MAGISK_ANDROID_AAPT2_OVERRIDE")
+                ?.takeIf(String::isNotBlank)
+                ?.let { arguments += "-Pandroid.aapt2FromMavenOverride=$it" }
+            val result = GradleRunner.create()
+                .withProjectDir(project.toFile())
+                .withPluginClasspath()
+                .withArguments(arguments)
+                .build()
+
+            assertTrue(
+                result.output.contains(
+                    "FEATURE_DEBUG_POLICY base=$debuggable feature=$debuggable baseRelease=false featureRelease=false",
+                ),
+                "flag=$flag\n${result.output}",
+            )
+            assertFalse(result.output.contains("corresponding build type in the base application is not debuggable"))
+        }
+    }
+
+    private fun createDynamicFeatureConsumer(): Path {
+        val matrix = DEFAULT_MATRIX.replace(
+            "magiskDistribution {",
+            "magiskDistribution {\n    dynamicFeatureFlavors.add(\"play\")",
+        )
+        val project = createConsumerProject(matrix, "magisk.android.application")
+        Files.writeString(
+            project.resolve("settings.gradle.kts"),
+            "\ninclude(\":feature\")\n",
+            java.nio.file.StandardOpenOption.APPEND,
+        )
+        Files.writeString(
+            project.resolve("app/build.gradle.kts"),
+            "\n" + """
+            |android {
+            |    dynamicFeatures += setOf(":feature")
+            |    defaultConfig {
+            |        applicationId = "io.github.magisk317.distributiontest"
+            |        versionCode = 1
+            |        versionName = "1.0.0"
+            |    }
+            |}
+            """.trimMargin() + "\n",
+            java.nio.file.StandardOpenOption.APPEND,
+        )
+        project.resolve("feature/build.gradle.kts").write(
+            """
+            plugins {
+                id("com.android.dynamic-feature")
+                id("magisk.android.distribution")
+            }
+            android {
+                namespace = "io.github.magisk317.distributiontest.feature"
+                buildFeatures.buildConfig = true
+            }
+            dependencies { implementation(project(":app")) }
+            """.trimIndent(),
+        )
+        project.resolve("feature/src/main/AndroidManifest.xml").write(
+            """
+            <manifest xmlns:dist="http://schemas.android.com/apk/distribution">
+                <dist:module dist:instant="false" dist:title="@string/feature_title">
+                    <dist:delivery><dist:on-demand /></dist:delivery>
+                    <dist:fusing dist:include="false" />
+                </dist:module>
+            </manifest>
+            """.trimIndent(),
+        )
+        project.resolve("feature/src/main/res/values/strings.xml").write(
+            """<resources><string name="feature_title">Test feature</string></resources>""",
+        )
+        Files.writeString(
+            project.resolve("build.gradle.kts"),
+            "\n" + """
+            |val debugPolicy = objects.property(String::class.java)
+            |gradle.projectsEvaluated {
+            |    val base = project(":app").extensions.getByType<com.android.build.api.dsl.ApplicationExtension>()
+            |    val feature = project(":feature").extensions.getByType<com.android.build.api.dsl.DynamicFeatureExtension>()
+            |    debugPolicy.set(
+            |        "FEATURE_DEBUG_POLICY base=${'$'}{base.buildTypes.getByName("debug").isDebuggable} " +
+            |            "feature=${'$'}{feature.buildTypes.getByName("debug").isDebuggable} " +
+            |            "baseRelease=${'$'}{base.buildTypes.getByName("release").isDebuggable} " +
+            |            "featureRelease=${'$'}{feature.buildTypes.getByName("release").isDebuggable}",
+            |    )
+            |}
+            |tasks.register("printFeatureDebugPolicy") {
+            |    val policy = debugPolicy
+            |    inputs.property("policy", policy)
+            |    doLast { println(policy.get()) }
+            |}
+            """.trimMargin() + "\n",
+            java.nio.file.StandardOpenOption.APPEND,
+        )
+        return project
+    }
+
     private fun runTasksFor(
         matrix: String?,
         modulePlugin: String = "magisk.android.application",
